@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +15,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Umrisse aus den Luftraumdateien, die bereits im XCSoar-Ordner liegen (die eigenen Dateien
- * der Nutzerin). Damit werden NOTAM-Aktivierungen ohne Koordinaten ("LF-R201 ACTIVE") mit der
- * echten Gebietsform gezeichnet statt mit dem ungefähren Kreis aus der Q-Zeile.
+ * Ersatz-Umrisse aus den Luftraumdateien, die in XCSoar eingebunden sind. Wird NUR verwendet,
+ * wenn die offizielle Quelle (DABS/SHV, DFS, ANS CR, NOTAM-Koordinaten) keine Grenzen liefert.
+ * Solche Gebiete werden im Namen mit "Grenzen aus <Datei>" gekennzeichnet.
  * Die Dateien werden nur gelesen, nichts davon wird weitergegeben.
  */
 public final class LocalGeometry {
@@ -78,22 +77,17 @@ public final class LocalGeometry {
 
     // --- Index aufbauen ----------------------------------------------------
 
-    /** Liest alle OpenAir-Dateien der Ordner (neueste zuerst); eigene App-Dateien werden ausgelassen. */
-    public static LocalGeometry scan(List<File> dirs) {
+    /**
+     * Liest die angegebenen Luftraumdateien – nur die, die in XCSoar eingebunden sind
+     * (siehe {@link XcsoarProfile}), in der dort konfigurierten Reihenfolge. Erste Datei gewinnt.
+     */
+    public static LocalGeometry scanFiles(List<File> files) {
         LocalGeometry g = new LocalGeometry();
-        List<File> all = new ArrayList<>();
-        for (File d : dirs) {
-            File[] fs = d.listFiles();
-            if (fs != null) all.addAll(Arrays.asList(fs));
-        }
-        Collections.sort(all, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
-        for (File f : all) {
-            String n = f.getName().toLowerCase(Locale.ROOT);
+        for (File f : files) {
             if (!f.isFile() || f.length() > 30_000_000L) continue;
-            if (!(n.endsWith(".txt") || n.endsWith(".air") || n.endsWith(".openair"))) continue;
-            if (n.equals("dabs.txt") || n.startsWith("mil-")) continue;
             try {
-                if (g.add(f)) g.files++;
+                g.add(f);
+                g.files++;
             } catch (Exception ignored) {
                 // unlesbare Datei überspringen
             }

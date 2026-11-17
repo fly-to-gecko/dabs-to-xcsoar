@@ -45,14 +45,12 @@ public final class Updater {
         return out;
     }
 
-    /** Alle Ordner mit Luftraumdateien (Datenordner + "airspace") – Quelle für echte Umrisse. */
-    static List<File> localAirspaceDirs() {
+    /** Luftraumdateien, die im aktiven Profil der jeweiligen XCSoar-Installation eingebunden sind. */
+    static List<File> configuredAirspaceFiles() {
         List<File> out = new ArrayList<>();
         for (File d : candidates()) {
             if (!d.isDirectory()) continue;
-            out.add(d);
-            File asp = new File(d, "airspace");
-            if (asp.isDirectory()) out.add(asp);
+            for (File f : dabs.core.XcsoarProfile.read(d).files) if (!out.contains(f)) out.add(f);
         }
         return out;
     }
@@ -87,8 +85,12 @@ public final class Updater {
         LocalGeometry local = null;
         for (Country k : Country.values()) {
             if (enabled(c, k) && k.usesLocalGeometry() && local == null) {
-                local = LocalGeometry.scan(localAirspaceDirs());
-                b.append("Lokale Luftraumdateien für Umrisse: ").append(local.files).append("\n\n");
+                List<File> conf = configuredAirspaceFiles();
+                local = LocalGeometry.scanFiles(conf);
+                b.append("Ersatz-Grenzen (nur wenn die Quelle keine hat) aus den in XCSoar eingebundenen Dateien:\n");
+                if (conf.isEmpty()) b.append("  (keine)\n");
+                for (File f : conf) b.append("  ").append(f.getName()).append('\n');
+                b.append('\n');
             }
             if (!enabled(c, k)) {
                 // abgewählt: eigene Datei entfernen, damit XCSoar keine veralteten Gebiete zeigt

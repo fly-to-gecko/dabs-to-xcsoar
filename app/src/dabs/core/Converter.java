@@ -29,12 +29,16 @@ public final class Converter {
 
     /** Nur laden und umwandeln, ohne zu schreiben. */
     public static Summary convert(String day) throws Exception {
+        return convert(day, null);
+    }
+
+    public static Summary convert(String day, LocalGeometry local) throws Exception {
         byte[] pdf = fetch(DABS_URL + day);
         DabsPdf.Result dabs = DabsPdf.parse(pdf);
         if (dabs.date == null) throw new Exception("DABS-PDF unlesbar (kein Datum gefunden)");
         String iso = OpenAir.isoDate(dabs.date);
         String json = new String(fetch(SHV_URL), Charset.forName("UTF-8"));
-        OpenAir.Output o = OpenAir.build(dabs, OpenAir.indexShv(json, iso));
+        OpenAir.Output o = OpenAir.build(dabs, OpenAir.indexShv(json, iso), local);
         Summary s = new Summary();
         s.date = iso;
         s.version = dabs.version;

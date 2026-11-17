@@ -8,6 +8,14 @@ import java.util.regex.Pattern;
 
 /** Ein aktiver Luftraum, bereit für OpenAir. Plus Hilfsfunktionen für Höhen und Koordinaten. */
 public final class Area {
+    /**
+     * Alle Gebiete der App bekommen die OpenAir-Klasse TFR ("temporary flight restriction").
+     * Sie kommt in den üblichen Luftraumdateien nicht vor; in XCSoar gibt man ihr einmalig eine
+     * eigene Farbe (Klasse Nr. 42, z. B. violett). Warnungen sind für TFR standardmäßig an.
+     * Die offizielle Kategorie (R, D, P, TRA ...) steht im Namen, z. B. "[R]".
+     */
+    public static final String OUT_CLASS = "TFR";
+
     /** Farbe (OpenAir SP/SB, violett). XCSoar ignoriert das, SeeYou u.a. werten es aus. */
     public static final String STYLE = "SP 0,2,128,0,255\nSB 128,0,255\n";
 
@@ -15,15 +23,32 @@ public final class Area {
     public String name;
     public String lower, upper;     // bereits im OpenAir-Format
     public List<String> geometry = new ArrayList<>(); // DP/V/DC/DB-Zeilen
+    public String note;             // z.B. Dateiname, wenn die Grenzen aus einer XCSoar-Datei stammen
 
     public void appendTo(StringBuilder b) {
-        b.append("AC ").append(cls).append('\n');
-        b.append("AN ").append(name).append('\n');
+        b.append("AC ").append(OUT_CLASS).append('\n');
+        b.append("AN ").append(label(name, cls, note)).append('\n');
         b.append(STYLE);
         b.append("AL ").append(lower).append('\n');
         b.append("AH ").append(upper).append('\n');
         for (String g : geometry) b.append(g).append('\n');
         b.append('\n');
+    }
+
+    /** Kategorie lesbar: R, D (Danger), P, TRA, TSA, MTA, Warnung */
+    public static String category(String cls) {
+        switch (cls) {
+            case "Q": return "D";
+            case "WARNING": return "Warnung";
+            default: return cls;
+        }
+    }
+
+    /** Name in XCSoar: "<Name> [<Kategorie>]" + ggf. "Grenzen aus <Datei>" */
+    public static String label(String name, String cls, String note) {
+        String s = name.replaceAll("\\s+", " ").trim() + " [" + category(cls) + "]"; // AN muss einzeilig sein
+        if (note != null) s += " Grenzen aus " + note;
+        return s;
     }
 
     public static String header(String title, String source, String stand) {

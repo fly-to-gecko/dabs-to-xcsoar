@@ -31,7 +31,7 @@ public final class Czechia {
         String key() { return area + "|" + from + "|" + until; }
     }
 
-    public static Country.Result fetch(LocalDate day) throws Exception {
+    public static Country.Result fetch(LocalDate day, LocalGeometry local) throws Exception {
         Http h = new Http();
         String index = h.get(INDEX);
         String aupUrl = null, uupUrl = null;
@@ -56,7 +56,7 @@ public final class Czechia {
             }
         }
         String geo = new String(h.request(GEOMETRY, null), Charset.forName("ISO-8859-1"));
-        Country.Result res = build(new ArrayList<>(rows.values()), indexOpenAir(geo), day);
+        Country.Result res = build(new ArrayList<>(rows.values()), indexOpenAir(geo), day, local);
         res.stand = stand;
         if (!cancelled.isEmpty()) res.report.add("Storniert (UUP): " + String.join(", ", cancelled));
         return res;
@@ -109,7 +109,7 @@ public final class Czechia {
         return idx;
     }
 
-    static Country.Result build(List<Row> rows, Map<String, List<String>> geo, LocalDate day) {
+    static Country.Result build(List<Row> rows, Map<String, List<String>> geo, LocalDate day, LocalGeometry local) {
         Country.Result r = new Country.Result();
         StringBuilder b = new StringBuilder();
         for (Row row : rows) {
@@ -118,6 +118,12 @@ public final class Czechia {
             if (g == null) g = geo.get(code);
             String times = row.from.replace(":", "") + "-" + row.until.replace(":", "") + "UTC";
             String lo = Area.alt(row.lower), hi = Area.alt(row.upper);
+            String note = null;
+            if ((g == null || g.isEmpty()) && local != null) {
+                // nicht in der Aeroklub-Datei: Ersatz aus einer in XCSoar eingebundenen Datei
+                List<LocalGeometry.Hit> hits = local.lookup(code.startsWith("LK") ? code : "LK" + code);
+                if (hits.size() == 1) { g = hits.get(0).geometry; note = hits.get(0).file; }
+            }
             if (g == null || g.isEmpty()) {
                 r.report.add(String.format(Locale.ROOT, "%-8s %-13s %s - %s  kein Umriss gefunden", row.area, times, lo, hi));
                 continue;
@@ -128,9 +134,11 @@ public final class Czechia {
             a.lower = lo;
             a.upper = hi;
             a.geometry = g;
+            a.note = note;
             a.appendTo(b);
             r.count++;
-            r.report.add(String.format(Locale.ROOT, "%-8s %-13s %s - %s", row.area, times, lo, hi));
+            r.report.add(String.format(Locale.ROOT, "%-8s %-13s %s - %s%s", row.area, times, lo, hi,
+                    note != null ? "  [Grenzen aus " + note + "]" : ""));
         }
         r.text = b.toString();
         return r;

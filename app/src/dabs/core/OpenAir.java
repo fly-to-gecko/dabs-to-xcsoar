@@ -141,6 +141,11 @@ public final class OpenAir {
     // --- Ausgabe -----------------------------------------------------------
 
     public static Output build(DabsPdf.Result dabs, Map<String, List<Map<String, Object>>> geo) {
+        return build(dabs, geo, null);
+    }
+
+    /** @param local Ersatz-Umrisse aus in XCSoar eingebundenen Dateien, nur wenn SHV keine Grenzen hat */
+    public static Output build(DabsPdf.Result dabs, Map<String, List<Map<String, Object>>> geo, LocalGeometry local) {
         Output o = new Output();
         String iso = dabs.date != null ? isoDate(dabs.date) : "?";
         String dayTag = iso.length() == 10 ? iso.substring(8, 10) + "." + iso.substring(5, 7) + "." : "";
@@ -148,7 +153,7 @@ public final class OpenAir {
         b.append("* Schweizer DABS-Aktivierungen (Skyguide) fuer XCSoar\n");
         b.append("* DABS-Datum: ").append(iso).append("  Version ").append(dabs.version)
                 .append("  erzeugt ").append(dabs.generated).append('\n');
-        b.append("* Geometrie: SHV/FSVL airspace.shv-fsvl.ch bzw. Kreis aus DABS-Mittelpunkt/Radius\n");
+        b.append("* Geometrie: SHV/FSVL airspace.shv-fsvl.ch; sonst eingebundene XCSoar-Datei (im Namen genannt) bzw. Kreis aus DABS-Mittelpunkt/Radius\n");
         b.append("* Zeiten in UTC. Ohne Gewaehr - massgebend sind DABS und NOTAM.\n\n");
 
         for (DabsPdf.Entry e : dabs.entries) {
@@ -175,8 +180,8 @@ public final class OpenAir {
                 for (Map<String, Object> asp : parts) {
                     for (Object so : Json.arr(asp.get("Segments"))) {
                         Map<String, Object> seg = Json.obj(so);
-                        b.append("AC ").append(cls).append('\n').append(Area.STYLE);
-                        b.append("AN ").append(asp.get("Name")).append(' ').append(dayTag).append(' ').append(times).append('\n');
+                        b.append("AC ").append(Area.OUT_CLASS).append('\n').append(Area.STYLE);
+                        b.append("AN ").append(Area.label(asp.get("Name") + " " + dayTag + " " + times, cls, null)).append('\n');
                         b.append("AL ").append(lo).append('\n');
                         b.append("AH ").append(hi).append('\n');
                         writeShape(Json.arr(seg.get("Shape")), b);
@@ -184,9 +189,22 @@ public final class OpenAir {
                     }
                 }
                 o.report.add(String.format(Locale.ROOT, "%-9s %-11s %11s - %-11s Umriss", e.id, times, lo, hi));
+            } else if (local != null && !local.lookup(e.id).isEmpty()) {
+                // SHV kennt das Gebiet nicht: Ersatz aus einer in XCSoar eingebundenen Datei
+                for (LocalGeometry.Hit hit : local.lookup(e.id)) {
+                    Area a = new Area();
+                    a.cls = cls;
+                    a.name = hit.code + " " + dayTag + " " + times;
+                    a.lower = lo;
+                    a.upper = hi;
+                    a.geometry = hit.geometry;
+                    a.note = hit.file;
+                    a.appendTo(b);
+                    o.report.add(String.format(Locale.ROOT, "%-9s %-11s %11s - %-11s Grenzen aus %s", hit.code, times, lo, hi, hit.file));
+                }
             } else {
-                b.append("AC ").append(cls).append('\n').append(Area.STYLE);
-                b.append("AN ").append(e.id).append(' ').append(dayTag).append(' ').append(times).append('\n');
+                b.append("AC ").append(Area.OUT_CLASS).append('\n').append(Area.STYLE);
+                b.append("AN ").append(Area.label(e.id + " " + dayTag + " " + times, cls, null)).append('\n');
                 b.append("AL ").append(lo).append('\n');
                 b.append("AH ").append(hi).append('\n');
                 b.append("V X=").append(fmtCoord(e.lat, e.lon)).append('\n');

@@ -94,7 +94,7 @@ public final class Notams {
 
             String text = str(n, "text").replace("\r", " ").replace("\n", " ").replaceAll("\\s+", " ");
             String number = str(n, "number");
-            String sched = str(n, "schedule");
+            String sched = str(n, "schedule").replaceAll("\\s+", " ").trim(); // kann Zeilenumbrüche enthalten
             String when = sched.isEmpty() ? window(from, until, dayStart, dayEnd) : sched;
             String lo = Area.alt(str(n, "lowerLimit").isEmpty() ? str(n, "minimumFl") : str(n, "lowerLimit"));
             String hi = Area.alt(str(n, "upperLimit").isEmpty() ? "FL" + str(n, "maximumFl") : str(n, "upperLimit"));
@@ -107,7 +107,7 @@ public final class Notams {
             if (pts.size() >= 3) {
                 for (double[] p : pts) geom.add(Area.dp(p[0], p[1]));
             } else if (local != null && !local.lookup(text).isEmpty()) {
-                // Gebiet ist in einer Luftraumdatei im XCSoar-Ordner vorhanden -> echter Umriss
+                // keine Grenzen im NOTAM, aber Gebiet in einer in XCSoar eingebundenen Datei -> deren Umriss
                 List<String> missing = new ArrayList<>();
                 List<LocalGeometry.Hit> hits = local.lookup(text, missing);
                 for (LocalGeometry.Hit hit : hits) {
@@ -117,9 +117,10 @@ public final class Notams {
                     a.lower = lo;
                     a.upper = hi;
                     a.geometry = hit.geometry;
+                    a.note = hit.file;
                     a.appendTo(b);
                     r.count++;
-                    r.report.add(String.format(Locale.ROOT, "%-9s %-12s %s - %s %s  [Umriss aus %s]",
+                    r.report.add(String.format(Locale.ROOT, "%-9s %-12s %s - %s %s  [Grenzen aus %s]",
                             number, hit.code, lo, hi, when, hit.file));
                 }
                 if (missing.isEmpty()) continue;
@@ -137,7 +138,7 @@ public final class Notams {
                 a.geometry = Area.circle(Area.dms(qm.group(1)), Area.dms(qm.group(2)), Math.max(rad, 0.5));
                 a.appendTo(b);
                 r.count++;
-                r.report.add(String.format(Locale.ROOT, "%-9s %-12s %s - %s %s  [Kreis ~%.0f NM, nicht in lokalen Dateien]",
+                r.report.add(String.format(Locale.ROOT, "%-9s %-12s %s - %s %s  [Kreis ~%.0f NM, nicht in eingebundenen Dateien]",
                         number, cut(lbl, 12), lo, hi, when, rad));
                 continue;
             } else {

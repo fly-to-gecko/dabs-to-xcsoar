@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 
 /** PC-Test:
- *   java -cp build/cli dabs.cli.Main [CH|DE|CZ|AT|FR|ALL] [ausgabe-ordner] [ordner-mit-luftraumdateien]
+ *   java -cp build/cli dabs.cli.Main [CH|DE|CZ|AT|FR|ALL] [ausgabe-ordner] [xcsoar-datenordner]
  *   java -cp build/cli dabs.cli.Main --pdf datei.pdf   (nur DABS-Parser testen) */
 public class Main {
     public static void main(String[] a) throws Exception {
@@ -25,8 +25,9 @@ public class Main {
         // optional: Ordner mit eigenen Luftraumdateien (wie im XCSoar-Ordner) für echte Umrisse
         dabs.core.LocalGeometry local = null;
         if (a.length > 2) {
-            local = dabs.core.LocalGeometry.scan(java.util.Collections.singletonList(new File(a[2])));
-            System.out.println("Lokale Luftraumdateien: " + local.files);
+            dabs.core.XcsoarProfile.Config cfg = dabs.core.XcsoarProfile.read(new File(a[2]));
+            local = dabs.core.LocalGeometry.scanFiles(cfg.files);
+            System.out.println("Aktives Profil: " + cfg.profile + ", eingebunden: " + cfg.files);
         }
         for (Country c : Country.values()) {
             if (!which.equals("ALL") && !which.equals(c.name())) continue;

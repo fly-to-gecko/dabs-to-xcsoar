@@ -23,9 +23,9 @@ public enum Country {
 
     public final String label, fileName, source, link;
 
-    /** Länder, deren Umrisse aus lokalen Luftraumdateien ergänzt werden können. */
+    /** Länder, bei denen fehlende Grenzen aus eingebundenen XCSoar-Dateien ergänzt werden können. */
     public boolean usesLocalGeometry() {
-        return this == AT || this == FR;
+        return this != DE; // DE liefert immer Umrisse
     }
 
     Country(String label, String fileName, String source, String link) {
@@ -61,7 +61,7 @@ public enum Country {
         Result r;
         switch (this) {
             case CH: {
-                Converter.Summary s = Converter.convert("today");
+                Converter.Summary s = Converter.convert("today", local);
                 r = new Result();
                 r.text = s.text;
                 r.count = s.count;
@@ -71,7 +71,7 @@ public enum Country {
                 return r;
             }
             case DE: r = Germany.fetch(day); break;
-            case CZ: r = Czechia.fetch(day); break;
+            case CZ: r = Czechia.fetch(day, local); break;
             case AT: r = Notams.fetch(Notams.AUSTRIA, Notams.FIR_AT, day, local); break;
             case FR: r = Notams.fetch(Notams.FRANCE, Notams.FIR_FR, day, local); break;
             default: throw new IllegalStateException();
