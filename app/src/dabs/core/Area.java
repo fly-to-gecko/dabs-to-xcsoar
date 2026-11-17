@@ -8,24 +8,16 @@ import java.util.regex.Pattern;
 
 /** Ein aktiver Luftraum, bereit für OpenAir. Plus Hilfsfunktionen für Höhen und Koordinaten. */
 public final class Area {
-    /**
-     * Alle Gebiete der App bekommen die OpenAir-Klasse TFR ("temporary flight restriction").
-     * Sie kommt in den üblichen Luftraumdateien praktisch nicht vor, daher kann man ihr in XCSoar
-     * eine eigene Farbe geben (Klasse Nr. 42, z. B. violett) und sieht sofort, welche Gebiete
-     * tagesaktuell aus der App stammen. Warnungen sind für TFR in XCSoar standardmäßig an.
-     */
-    public static final String OUT_CLASS = "TFR";
-
     /** Farbe (OpenAir SP/SB, violett). XCSoar ignoriert das, SeeYou u.a. werten es aus. */
     public static final String STYLE = "SP 0,2,128,0,255\nSB 128,0,255\n";
 
-    public String cls = "R";        // ursprüngliche Art (R/Q/P) – nur informativ
+    public String cls = "R";        // offizielle Kategorie: R = Restricted, Q = Danger, P = Prohibited
     public String name;
     public String lower, upper;     // bereits im OpenAir-Format
     public List<String> geometry = new ArrayList<>(); // DP/V/DC/DB-Zeilen
 
     public void appendTo(StringBuilder b) {
-        b.append("AC ").append(OUT_CLASS).append('\n');
+        b.append("AC ").append(cls).append('\n');
         b.append("AN ").append(name).append('\n');
         b.append(STYLE);
         b.append("AL ").append(lower).append('\n');
@@ -39,6 +31,22 @@ public final class Area {
                 + "* Quelle: " + source + "\n"
                 + "* Stand: " + stand + "\n"
                 + "* Zeiten in UTC. Ohne Gewaehr - massgebend sind AIP, AUP/DABS und NOTAM.\n\n";
+    }
+
+    // --- Kategorie ----------------------------------------------------------
+
+    /**
+     * Offizielle Kategorie aus der Gebietsbezeichnung (OpenAir-AC):
+     * D-Gebiete -> Q (Danger), P-Gebiete -> P (Prohibited), TRA/TSA -> TRA/TSA, sonst R (Restricted).
+     */
+    public static String classFor(String code) {
+        String c = code.toUpperCase(Locale.ROOT).replace(" ", "");
+        // TRA/TSA nur als Bezeichnung mit Nummer (TRA6, LKTSA42, ED-TRA..), nicht "TRAINING"
+        if (c.matches("^(?:[A-Z]{2}-?)?TRA\\d.*")) return "TRA";
+        if (c.matches("^(?:[A-Z]{2}-?)?TSA\\d.*")) return "TSA";
+        if (c.matches("^(LS-?D|ED-?D|LK-?D|LO-?D|LF-?D|LI-?D)\\d.*")) return "Q";
+        if (c.matches("^(LS-?P|ED-?P|LK-?P|LO-?P|LF-?P|LI-?P)\\d.*")) return "P";
+        return "R";
     }
 
     // --- Höhen -------------------------------------------------------------

@@ -67,7 +67,7 @@ public final class Germany {
             for (Map.Entry<String, List<String>> e : bands.entrySet()) {
                 String[] lu = e.getKey().split("\\|");
                 Area a = new Area();
-                a.cls = part.contains("-D") ? "Q" : "R";
+                a.cls = Area.classFor(part);
                 String times = String.join(",", merge(e.getValue())) + "UTC";
                 a.name = part + " " + Country.dayTag(day) + " " + times;
                 a.lower = lu[0];

@@ -123,7 +123,7 @@ public final class Czechia {
                 continue;
             }
             Area a = new Area();
-            a.cls = code.contains("D") && !code.contains("TSA") && !code.contains("TRA") ? "Q" : "R";
+            a.cls = Area.classFor(code.startsWith("LK") ? code : "LK" + code);
             a.name = (code.startsWith("LK") ? code : "LK" + code) + " " + Country.dayTag(day) + " " + times;
             a.lower = lo;
             a.upper = hi;

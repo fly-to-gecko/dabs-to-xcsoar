@@ -39,9 +39,7 @@ public class MainActivity extends Activity {
         info.setText("Lädt beim Öffnen der App die heute aktiven Militär-/Sperrgebiete der gewählten Länder "
                 + "und schreibt je Land eine OpenAir-Datei in alle XCSoar-Ordner (bei XCSoar 7.45+ in „airspace“).\n"
                 + "In XCSoar einmalig unter Konfiguration → Standort-Dateien → Luftraum die Dateien "
-                + "zusätzlich auswählen.\n"
-                + "Tipp: Die Gebiete haben die Luftraumklasse TFR – in XCSoar unter Luftraum → Farben "
-                + "z. B. violett einstellen, dann heben sie sich von der Standarddatei ab.\n");
+                + "zusätzlich auswählen.\n");
         l.addView(info);
 
         TextView lt = new TextView(this);

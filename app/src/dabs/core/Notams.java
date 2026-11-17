@@ -123,7 +123,7 @@ public final class Notams {
             if (label.matches("LF[RDP]\\d.*")) label = "LF-" + label.substring(2);
             String shape = pts.size() >= 3 ? "Umriss" : "Kreis ~" + geomRadius(geom);
             Area a = new Area();
-            a.cls = q.startsWith("QRD") ? "Q" : q.startsWith("QRP") ? "P" : "R";
+            a.cls = classFromQ(q, label);
             a.name = label + " " + number + " " + Country.dayTag(day) + " " + when;
             a.lower = lo;
             a.upper = hi;
@@ -148,6 +148,22 @@ public final class Notams {
         String cond = q.substring(3);
         if (cond.equals("CA") || cond.equals("CS") || cond.equals("LW") || cond.equals("LP")) return true;
         return cond.equals("XX") && (q.startsWith("QRM") || q.startsWith("QRT"));
+    }
+
+    /**
+     * Kategorie aus dem ICAO-Q-Code (2./3. Buchstabe), bei TRA/TSA aus der Bezeichnung:
+     * QRD Danger -> Q, QRP/QRO Prohibited -> P, QRM Military Operating Area -> MTA,
+     * QRA Reserved -> TSA, QW.. Warnung (Übung) -> WARNING, sonst R.
+     */
+    static String classFromQ(String q, String label) {
+        String byName = Area.classFor(label);
+        if (byName.equals("TRA") || byName.equals("TSA")) return byName;
+        if (q.startsWith("QRD")) return "Q";
+        if (q.startsWith("QRP") || q.startsWith("QRO")) return "P";
+        if (q.startsWith("QRM")) return "MTA";
+        if (q.startsWith("QRA")) return "TSA";
+        if (q.startsWith("QW")) return "WARNING";
+        return "R";
     }
 
     static String formatted(Map<String, Object> item) {
