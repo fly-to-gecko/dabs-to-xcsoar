@@ -1,5 +1,7 @@
 # DABS für XCSoar
 
+> **Beta-Version** – funktioniert, wird aber noch getestet. Rückmeldungen gern als Issue.
+
 Android-App, die die **tagesaktuellen Militär-Lufträume der Schweiz** (Skyguide *DABS – Daily Airspace
 Bulletin Switzerland*) als OpenAir-Datei `dabs.txt` in den Datenordner von **XCSoar** schreibt.
 So zeigt XCSoar nur die Gebiete an, die heute wirklich aktiv sind – mit ihrer echten Form, Höhe und
