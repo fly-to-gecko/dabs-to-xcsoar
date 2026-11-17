@@ -107,3 +107,7 @@ app/
   cli/                     Kommandozeile zum Testen am PC
 tools/dabs2openair.py      Python-Prototyp
 ```
+
+## Lizenz
+
+[MIT](LICENSE)
