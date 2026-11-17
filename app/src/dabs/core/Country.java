@@ -73,8 +73,21 @@ public enum Country {
         return r;
     }
 
+    /**
+     * XCSoar erkennt eine OpenAir-Datei nur, wenn sie mindestens einen Luftraum enthält
+     * ("Unbekannter Luftraumdateityp"). Ohne Aktivierungen daher ein winziger Platzhalter
+     * bei 0°N 0°E (Golf von Guinea) – stört nirgends.
+     */
+    static String ensureNotEmpty(String text) {
+        if (text.startsWith("AC ") || text.contains("\nAC ")) return text;
+        return text + "* Heute keine Aktivierungen. Platzhalter, damit XCSoar die Datei akzeptiert:\n"
+                + "AC G\nAN Platzhalter - keine Aktivierungen\nAL GND\nAH 1ft AGL\n"
+                + "V X=00:00:00 N 000:00:00 E\nDC 0.01\n";
+    }
+
     /** Atomar schreiben (tmp + rename). */
     public static void write(File out, String text) throws Exception {
+        text = ensureNotEmpty(text);
         File dir = out.getParentFile();
         if (dir != null && !dir.isDirectory() && !dir.mkdirs()) throw new Exception("Ordner nicht anlegbar: " + dir);
         File tmp = new File(dir, out.getName() + ".tmp");

@@ -1,5 +1,7 @@
 # DABS für XCSoar
 
+Tagesaktuelle Militär-/Sperrgebiete für XCSoar: Schweiz, Deutschland, Tschechien, Österreich, Frankreich.
+
 > **Beta-Version** – funktioniert, wird aber noch getestet. Rückmeldungen gern als Issue.
 
 Android-App, die die **tagesaktuellen Militär-Lufträume der Schweiz** (Skyguide *DABS – Daily Airspace
@@ -11,23 +13,32 @@ Aktivierungszeit.
 
 ## So funktioniert's
 
-1. Beim **Öffnen der App** (oder mit „Jetzt aktualisieren“) lädt sie das aktuelle DABS-PDF von
-   [skybriefing.com](https://www.skybriefing.com/o/dabs?today).
-2. Aus dem PDF werden alle aktivierten Gebiete gelesen (LS-R, LS-D, temporäre W-NOTAM-Gebiete),
-   jeweils mit Zeiten (UTC), Unter- und Obergrenze.
-3. Die echten Umrisse der R-/D-Gebiete kommen aus der Luftraum-API des SHV/FSVL
-   ([airspace.shv-fsvl.ch](https://airspace.shv-fsvl.ch)). Für Gebiete ohne Umriss
-   (z. B. temporäre NOTAMs) wird ein Kreis aus Mittelpunkt und Radius des DABS gezeichnet.
-4. Die App schreibt `dabs.txt` in **alle** gefundenen XCSoar-Installationen:
+Beim **Öffnen der App** (oder mit „Jetzt aktualisieren“) lädt sie für jedes angehakte Land die heute
+aktiven Gebiete und schreibt je Land eine OpenAir-Datei in **alle** gefundenen XCSoar-Installationen
+(XCSoar 7.45+: `Android/media/<paket>/airspace/`, ältere Versionen und OpenSoar: Datenordner).
 
-   | App | Ordner |
-   |---|---|
-   | XCSoar 7.45+ (`org.xcsoar.foss`, `org.xcsoar`) | `Android/media/<paket>/airspace/dabs.txt` |
-   | XCSoar 7.43 und älter | `Android/media/org.xcsoar/dabs.txt` |
-   | OpenSoar | `Android/media/de.opensoar/dabs.txt` |
+| Land | Datei | Aktivierungen aus | Umrisse aus |
+|---|---|---|---|
+| 🇨🇭 Schweiz | `dabs.txt` | Skyguide DABS ([PDF](https://www.skybriefing.com/o/dabs?today)) | SHV/FSVL ([API](https://airspace.shv-fsvl.ch)) bzw. Kreis aus dem DABS |
+| 🇩🇪 Deutschland | `mil-de.txt` | DFS [WebAUP](https://secais.dfs.de/pilotservice/briefing/aup/aup_edit.jsp) | DFS (kommen mit) |
+| 🇨🇿 Tschechien | `mil-cz.txt` | ANS CR [AUP/UUP](https://aup.ans.cz/) (UUP-Stornos werden berücksichtigt) | Luftraumdatei des Aeroklub ČR (XCSoar-Repository, frei nutzbar) |
+| 🇦🇹 Österreich | `mil-at.txt` | NOTAM über [notam.xcsoar.org](https://github.com/yorickreum/xcsoar-notam-proxy) | Koordinaten aus dem NOTAM, sonst Kreis aus der Q-Zeile |
+| 🇫🇷 Frankreich | `mil-fr.txt` | NOTAM über notam.xcsoar.org | wie Österreich |
 
 Die Gebietsnamen enthalten Datum und Zeiten, z. B. `LSR7 Hongrin 17.11. 0630-2100UTC` –
-so sieht man in XCSoar sofort, wenn die Daten nicht von heute sind.
+so sieht man in XCSoar sofort, wenn die Daten nicht von heute sind. Mit dem Knopf
+**„Original-DABS anzeigen (PDF)“** öffnet die App das zugrunde liegende Skyguide-PDF.
+
+Hinweise:
+- **Schweiz:** Einträge, die Skyguide nicht in die DABS-Karte zeichnet („Activities not shown on the
+  DABS Chart Side“, z. B. MIL-Nachtflüge über die ganze Schweiz), erscheinen nur als Hinweis in der App.
+- **Deutschland:** Die DFS WebAUP zeigt laut DFS nur Aktivierungen bis FL100 (Alpen FL130) und ist nicht vollständig.
+- **Österreich/Frankreich:** Nur NOTAMs, die eine Aktivität bedeuten (Q-Code …CA/CS/LW/LP). Ohne
+  Koordinaten im Text ist der Kreis nur **ungefähr**; sehr große Kreise (> 50 NM) nur als Hinweis.
+  Wer in XCSoar 7.45 die eingebaute NOTAM-Anzeige nutzt, sieht diese Gebiete evtl. doppelt.
+- Gibt es heute keine Aktivierung, enthält die Datei einen winzigen Platzhalter bei 0°N 0°E,
+  weil XCSoar leere OpenAir-Dateien ablehnt.
+- Abgewählte Länder: die App löscht deren Datei, damit keine veralteten Gebiete angezeigt werden.
 
 Die App läuft **nicht im Hintergrund**: Daten werden nur geholt, wenn du sie öffnest.
 
@@ -43,8 +54,8 @@ Voraussetzung: Android 8 oder neuer, XCSoar mindestens einmal gestartet.
 
 ## Einrichtung in XCSoar (einmalig)
 
-**Konfiguration → System → Standort-Dateien → Luftraum:** `dabs.txt` **zusätzlich** zu deiner
-normalen Schweizer Luftraumdatei auswählen (XCSoar 7.45 kann mehrere Dateien gleichzeitig laden;
+**Konfiguration → System → Standort-Dateien → Luftraum:** `dabs.txt` bzw. `mil-xx.txt` **zusätzlich** zu deiner
+normalen Luftraumdatei auswählen (XCSoar 7.45 kann mehrere Dateien gleichzeitig laden;
 ältere Versionen haben dafür das Feld „Weitere Luftraumdatei“).
 
 Wichtig: Die normale Luftraumdatei sollte **keine** DABS-Gebiete enthalten (z. B.
@@ -91,7 +102,8 @@ Die Umwandlung (`app/src/dabs/core`) ist reines Java und läuft auch am PC:
 
 ```bash
 mkdir -p /tmp/dabs && javac -d /tmp/dabs $(find app/src/dabs/core app/cli -name '*.java')
-java -cp /tmp/dabs dabs.cli.Main today dabs.txt         # heute
+java -cp /tmp/dabs dabs.cli.Main ALL .                  # alle Länder in den aktuellen Ordner
+java -cp /tmp/dabs dabs.cli.Main DE .                   # nur ein Land (CH, DE, CZ, AT, FR)
 java -cp /tmp/dabs dabs.cli.Main --pdf dabs.pdf         # nur PDF-Parser testen
 ```
 
@@ -104,7 +116,7 @@ app/
   AndroidManifest.xml
   build.sh                 Build ohne Gradle (javac → d8 → aapt2 → apksigner)
   res/                     Icon
-  src/dabs/core/           DABS-PDF lesen, SHV-JSON, OpenAir schreiben (plattformunabhängig)
+  src/dabs/core/           Länder-Quellen (DabsPdf, Germany, Czechia, Notams), OpenAir (plattformunabhängig)
   src/dabs/xcsoar/         Android-Oberfläche, XCSoar-Ordner finden
   cli/                     Kommandozeile zum Testen am PC
 tools/dabs2openair.py      Python-Prototyp
