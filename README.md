@@ -62,6 +62,23 @@ Wichtig: Die normale Luftraumdatei sollte **keine** DABS-Gebiete enthalten (z. B
 `CH-ASP-DABS-SegelflugCH.txt` oder eine Variante „ohne DABS“), sonst erscheinen alle
 R-/D-Gebiete immer – egal ob aktiv.
 
+### Eigene Farbe für die App-Gebiete (empfohlen)
+
+Alle Gebiete aus der App haben die OpenAir-Klasse **TFR** (temporäre Flugbeschränkung). Diese Klasse
+kommt in den üblichen Luftraumdateien nicht vor. Gib ihr in XCSoar einmalig eine eigene Farbe, dann
+siehst du sofort, was heute aktiv ist:
+
+**Konfiguration → System → Luftraum → Farben → TFR** → z. B. Violett für Rand und Füllung.
+
+- rot = Gebiet aus der Standard-Luftraumdatei (existiert)
+- violett = heute laut DABS/AUP/NOTAM aktiv (aus der App)
+
+Luftraumwarnungen sind für TFR in XCSoar standardmäßig eingeschaltet. Die Dateien enthalten zusätzlich
+die OpenAir-Farbangaben `SP`/`SB` (violett); XCSoar wertet diese nicht aus, SeeYou und andere Programme schon.
+
+(Profil-Einträge, falls man das Profil von Hand bearbeitet: `AirspaceBorderColor42="#8000FF"` und
+`AirspaceFillColor42="#8000FF"` – XCSoar dabei vorher beenden.)
+
 **Vor dem Flug:** erst die DABS-App öffnen, bis „OK“ erscheint, dann XCSoar starten.
 XCSoar liest Luftraumdateien nur beim Start (oder nach Änderungen in der Konfiguration) ein.
 
