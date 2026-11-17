@@ -175,7 +175,7 @@ public final class OpenAir {
                 for (Map<String, Object> asp : parts) {
                     for (Object so : Json.arr(asp.get("Segments"))) {
                         Map<String, Object> seg = Json.obj(so);
-                        b.append("AC ").append(cls).append('\n');
+                        b.append("AC ").append(Area.OUT_CLASS).append('\n');
                         b.append("AN ").append(asp.get("Name")).append(' ').append(dayTag).append(' ').append(times).append('\n');
                         b.append("AL ").append(lo).append('\n');
                         b.append("AH ").append(hi).append('\n');
@@ -185,7 +185,7 @@ public final class OpenAir {
                 }
                 o.report.add(String.format(Locale.ROOT, "%-9s %-11s %11s - %-11s Umriss", e.id, times, lo, hi));
             } else {
-                b.append("AC ").append(cls).append('\n');
+                b.append("AC ").append(Area.OUT_CLASS).append('\n');
                 b.append("AN ").append(e.id).append(' ').append(dayTag).append(' ').append(times).append('\n');
                 b.append("AL ").append(lo).append('\n');
                 b.append("AH ").append(hi).append('\n');

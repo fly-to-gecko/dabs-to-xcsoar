@@ -8,13 +8,21 @@ import java.util.regex.Pattern;
 
 /** Ein aktiver Luftraum, bereit für OpenAir. Plus Hilfsfunktionen für Höhen und Koordinaten. */
 public final class Area {
-    public String cls = "R";        // R = Restricted, Q = Danger, P = Prohibited
+    /**
+     * Alle Gebiete der App bekommen die OpenAir-Klasse TFR ("temporary flight restriction").
+     * Sie kommt in den üblichen Luftraumdateien praktisch nicht vor, daher kann man ihr in XCSoar
+     * eine eigene Farbe geben (Klasse Nr. 42, z. B. violett) und sieht sofort, welche Gebiete
+     * tagesaktuell aus der App stammen. Warnungen sind für TFR in XCSoar standardmäßig an.
+     */
+    public static final String OUT_CLASS = "TFR";
+
+    public String cls = "R";        // ursprüngliche Art (R/Q/P) – nur informativ
     public String name;
     public String lower, upper;     // bereits im OpenAir-Format
     public List<String> geometry = new ArrayList<>(); // DP/V/DC/DB-Zeilen
 
     public void appendTo(StringBuilder b) {
-        b.append("AC ").append(cls).append('\n');
+        b.append("AC ").append(OUT_CLASS).append('\n');
         b.append("AN ").append(name).append('\n');
         b.append("AL ").append(lower).append('\n');
         b.append("AH ").append(upper).append('\n');
