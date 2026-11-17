@@ -16,6 +16,9 @@ public final class Area {
      */
     public static final String OUT_CLASS = "TFR";
 
+    /** Farbe (OpenAir SP/SB, violett). XCSoar ignoriert das, SeeYou u.a. werten es aus. */
+    public static final String STYLE = "SP 0,2,128,0,255\nSB 128,0,255\n";
+
     public String cls = "R";        // ursprüngliche Art (R/Q/P) – nur informativ
     public String name;
     public String lower, upper;     // bereits im OpenAir-Format
@@ -24,6 +27,7 @@ public final class Area {
     public void appendTo(StringBuilder b) {
         b.append("AC ").append(OUT_CLASS).append('\n');
         b.append("AN ").append(name).append('\n');
+        b.append(STYLE);
         b.append("AL ").append(lower).append('\n');
         b.append("AH ").append(upper).append('\n');
         for (String g : geometry) b.append(g).append('\n');
