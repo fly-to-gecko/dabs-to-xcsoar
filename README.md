@@ -34,12 +34,14 @@ Hinweise:
   DABS Chart Side“, z. B. MIL-Nachtflüge über die ganze Schweiz), erscheinen nur als Hinweis in der App.
 - **Deutschland:** Die DFS WebAUP zeigt laut DFS nur Aktivierungen bis FL100 (Alpen FL130) und ist nicht vollständig.
 - **Österreich/Frankreich:** Nur NOTAMs, die eine Aktivität bedeuten (Q-Code …CA/CS/LW/LP).
-  Die Form kommt in dieser Reihenfolge aus: (1) Koordinaten im NOTAM-Text, (2) **deinen eigenen
-  Luftraumdateien im XCSoar-Ordner** – nennt das NOTAM z. B. „LF-R368 A B C1“ oder „LF-D596 A/B/C“,
-  sucht die App diese Teilgebiete dort und übernimmt den echten Umriss (die Dateien werden nur gelesen),
-  (3) sonst der **ungefähre** Kreis aus dem NOTAM. Fehlt ein genannter Teil in deinen Dateien, wird
-  für ihn zusätzlich der Kreis gezeichnet. Sehr große Kreise (> 50 NM) nur als Hinweis.
-  Wer in XCSoar 7.45 die eingebaute NOTAM-Anzeige nutzt, sieht diese Gebiete evtl. doppelt.
+  Sehr große Kreise (> 50 NM) nur als Hinweis.
+- **Herkunft der Grenzen (alle Länder):** Vorrang hat immer die offizielle Quelle (SHV-Daten zum DABS,
+  DFS, Aeroklub ČR, Koordinaten im NOTAM). **Nur wenn diese keine Grenzen liefert**, sucht die App das
+  Gebiet in den Luftraumdateien, die im **aktiven XCSoar-Profil eingebunden** sind (laut `xcsoar.log`;
+  andere Dateien im Ordner werden nicht benutzt, da sie veraltet sein können). Nennt ein NOTAM z. B.
+  „LF-R368 A B C1“ oder „LF-D596 A/B/C“, werden die Teilgebiete einzeln gesucht. Solche Gebiete sind im
+  Namen gekennzeichnet: `… [R] Grenzen aus FR-ASP-National-OpenAIP.txt`. Erst wenn auch dort nichts
+  steht, wird der **ungefähre** Kreis gezeichnet; fehlt nur ein Teil, bekommt dieser zusätzlich den Kreis.
 - Gibt es heute keine Aktivierung, enthält die Datei einen winzigen Platzhalter bei 0°N 0°E,
   weil XCSoar leere OpenAir-Dateien ablehnt.
 - Abgewählte Länder: die App löscht deren Datei, damit keine veralteten Gebiete angezeigt werden.
@@ -66,10 +68,19 @@ Wichtig: Die normale Luftraumdatei sollte **keine** DABS-Gebiete enthalten (z. B
 `CH-ASP-DABS-SegelflugCH.txt` oder eine Variante „ohne DABS“), sonst erscheinen alle
 R-/D-Gebiete immer – egal ob aktiv.
 
-Die Gebiete behalten ihre **offizielle Kategorie** (R = Sperrgebiet, Q = Gefahrengebiet, P = Verbotszone,
-TRA/TSA, MTA, bei NOTAM-Warnungen WARNING), damit XCSoar sie richtig einordnet und warnt. Zusätzlich
-enthalten sie die OpenAir-Farbangaben `SP`/`SB` (violett) – XCSoar wertet diese nicht aus, SeeYou und
-andere Programme schon. In XCSoar erkennst du die Gebiete aus der App am Datum und den Zeiten im Namen.
+### Eigene Farbe für die App-Gebiete (empfohlen)
+
+Alle Gebiete aus der App haben die OpenAir-Klasse **TFR** (temporäre Flugbeschränkung). Diese Klasse
+kommt in den üblichen Luftraumdateien nicht vor. Gib ihr in XCSoar einmalig eine eigene Farbe:
+
+**Konfiguration → System → Luftraum → Farben → TFR** → z. B. Violett für Rand und Füllung.
+
+Dann gilt: rot = Gebiet aus der Standard-Luftraumdatei, violett = heute aktiv laut DABS/AUP/NOTAM.
+Die **offizielle Kategorie** steht im Namen: `[R]` Sperrgebiet, `[D]` Gefahrengebiet, `[P]` Verbotszone,
+`[TRA]`, `[TSA]`, `[MTA]`, `[Warnung]`. Luftraumwarnungen sind für TFR in XCSoar standardmäßig an.
+Zusätzlich enthalten die Dateien `SP`/`SB` (violett) für SeeYou & Co.; XCSoar wertet diese nicht aus.
+
+(Von Hand im Profil, XCSoar vorher beenden: `AirspaceBorderColor42="#8000FF"` und `AirspaceFillColor42="#8000FF"`.)
 
 **Vor dem Flug:** erst die DABS-App öffnen, bis „OK“ erscheint, dann XCSoar starten.
 XCSoar liest Luftraumdateien nur beim Start (oder nach Änderungen in der Konfiguration) ein.
