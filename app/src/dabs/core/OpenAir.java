@@ -159,7 +159,17 @@ public final class OpenAir {
             }
             String times = t + "UTC";
             String lo = fmtAlt(e.lower), hi = fmtAlt(e.upper);
-            String cls = (e.infoOnly || e.id.startsWith("LSD")) ? "Q" : "R";
+            if (e.infoOnly) {
+                // "Activities not shown on the DABS Chart Side" (z.B. MIL-Nachtflüge, 98 NM Radius):
+                // Skyguide zeichnet diese nicht in die Karte -> nur als Hinweis, nicht in OpenAir.
+                String txt = e.text.length() > 140 ? e.text.substring(0, 140) + "…" : e.text;
+                o.report.add(String.format(Locale.ROOT, "%-9s %-11s %11s - %-11s NUR INFO (nicht in Karte)%n          %s",
+                        e.id, times, lo, hi, txt));
+                b.append("* Info (nicht in DABS-Karte): ").append(e.id).append(' ').append(times).append(' ')
+                        .append(lo).append(" - ").append(hi).append(": ").append(e.text).append("\n\n");
+                continue;
+            }
+            String cls = e.id.startsWith("LSD") ? "Q" : "R";
             List<Map<String, Object>> parts = geo.get(e.id);
             if (parts != null && !parts.isEmpty()) {
                 for (Map<String, Object> asp : parts) {

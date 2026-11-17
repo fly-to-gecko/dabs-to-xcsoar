@@ -23,6 +23,7 @@ public final class Converter {
         public int count;
         public List<String> report;
         public File file;
+        public byte[] pdf; // Original-DABS, wie heruntergeladen
     }
 
     public static byte[] fetch(String url) throws Exception {
@@ -45,7 +46,8 @@ public final class Converter {
 
     /** day = "today" oder "tomorrow" */
     public static Summary run(String day, File outFile) throws Exception {
-        DabsPdf.Result dabs = DabsPdf.parse(fetch(DABS_URL + day));
+        byte[] pdf = fetch(DABS_URL + day);
+        DabsPdf.Result dabs = DabsPdf.parse(pdf);
         if (dabs.date == null) throw new Exception("DABS-PDF unlesbar (kein Datum gefunden)");
         String iso = OpenAir.isoDate(dabs.date);
         String json = new String(fetch(SHV_URL), Charset.forName("UTF-8"));
@@ -70,6 +72,7 @@ public final class Converter {
         s.count = dabs.entries.size();
         s.report = o.report;
         s.file = outFile;
+        s.pdf = pdf;
         return s;
     }
 }

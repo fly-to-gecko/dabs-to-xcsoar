@@ -226,6 +226,9 @@ def build_openair(meta, entries, geo):
     ]
     report = []
     for e in entries:
+        if e["info"]:  # "Activities not shown on the DABS Chart Side" -> nicht zeichnen
+            report.append(f"  {e['id']:8s} NUR INFO: {e['text'][:100]}")
+            continue
         code = e["id"]
         times = " ".join(f"{a}-{b}" for a, b in e["times"])
         label_base = f"{code} {times}UTC"

@@ -54,6 +54,19 @@ public final class Updater {
         if (!tmp.renameTo(to)) { to.delete(); if (!tmp.renameTo(to)) throw new Exception("Schreiben fehlgeschlagen: " + to); }
     }
 
+    /** Lokale Kopie des Original-DABS, wird über PdfProvider angezeigt. */
+    static File pdfFile(Context c) {
+        return new File(c.getCacheDir(), "dabs.pdf");
+    }
+
+    static void savePdf(Context c, byte[] pdf) {
+        try (FileOutputStream o = new FileOutputStream(pdfFile(c))) {
+            o.write(pdf);
+        } catch (Exception ignored) {
+            // Anzeige des PDFs ist optional
+        }
+    }
+
     static SharedPreferences prefs(Context c) {
         return c.getSharedPreferences("status", Context.MODE_PRIVATE);
     }
@@ -66,6 +79,7 @@ public final class Updater {
             List<File> targets = targetFiles();
             if (targets.isEmpty()) throw new Exception("XCSoar-Datenordner nicht gefunden. XCSoar einmal starten?");
             Converter.Summary s = Converter.run("today", targets.get(0));
+            savePdf(c, s.pdf);
             StringBuilder b = new StringBuilder();
             b.append("OK ").append(now).append(": DABS ").append(s.date).append(" Version ").append(s.version)
                     .append(", ").append(s.count).append(" Aktivierungen\n");

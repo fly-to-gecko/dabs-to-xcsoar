@@ -19,6 +19,7 @@ public class MainActivity extends Activity {
     private TextView status;
     private Button grant, update;
     private boolean running;
+    private boolean backFromPdf; // nach dem PDF-Betrachter nicht erneut laden
 
     @Override
     protected void onCreate(Bundle b) {
@@ -50,6 +51,11 @@ public class MainActivity extends Activity {
         update.setOnClickListener(v -> runNow());
         l.addView(update);
 
+        Button pdf = new Button(this);
+        pdf.setText("Original-DABS anzeigen (PDF)");
+        pdf.setOnClickListener(v -> openPdf());
+        l.addView(pdf);
+
         status = new TextView(this);
         status.setTypeface(Typeface.MONOSPACE);
         status.setTextSize(12);
@@ -71,7 +77,8 @@ public class MainActivity extends Activity {
         showStatus(null);
         if (ok) {
             Updater.cancelOldJobs(this);
-            runNow(); // jedes Öffnen der App holt die aktuellen Daten
+            if (backFromPdf) backFromPdf = false;
+            else runNow(); // jedes Öffnen der App holt die aktuellen Daten
         }
     }
 
@@ -102,6 +109,25 @@ public class MainActivity extends Activity {
             String r = Updater.runUpdate(getApplicationContext());
             runOnUiThread(() -> { running = false; update.setEnabled(true); showStatus(r); });
         }).start();
+    }
+
+    /** Zeigt das zuletzt geladene Original-PDF; ohne lokale Kopie die Skyguide-Seite. */
+    private void openPdf() {
+        File f = Updater.pdfFile(this);
+        if (f.isFile() && f.length() > 0) {
+            Intent i = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(Uri.parse("content://" + PdfProvider.AUTHORITY + "/dabs.pdf"), "application/pdf")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            try {
+                backFromPdf = true;
+                startActivity(i);
+                return;
+            } catch (Exception ignored) {
+                backFromPdf = false; // kein PDF-Betrachter -> Browser
+            }
+        }
+        backFromPdf = true;
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(dabs.core.Converter.DABS_URL + "today")));
     }
 
     private void requestStorage() {

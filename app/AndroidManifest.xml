@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dabs.xcsoar"
-    android:versionCode="6"
-    android:versionName="0.4">
+    android:versionCode="7"
+    android:versionName="0.5">
 
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
 
@@ -27,6 +27,9 @@
             </intent-filter>
         </activity>
 
-
+        <provider android:name=".PdfProvider"
+            android:authorities="dabs.xcsoar.pdf"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>
