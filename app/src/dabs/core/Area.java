@@ -39,7 +39,7 @@ public final class Area {
     /** "F095" / "FL 95" / "A020" / "5500FT AMSL" / "GND" -> OpenAir. */
     public static String alt(String raw) {
         if (raw == null) return "UNL";
-        String s = raw.trim().toUpperCase(Locale.ROOT);
+        String s = raw.trim().toUpperCase(Locale.ROOT).replace("/", " ").replaceAll("\\s+", " ");
         if (s.isEmpty() || s.equals("UNL") || s.equals("UNLTD") || s.equals("999")) return "UNL";
         if (s.equals("GND") || s.equals("SFC") || s.equals("000")) return "GND";
         if (s.equals("MSL") || s.equals("AMSL")) return "0ft MSL";

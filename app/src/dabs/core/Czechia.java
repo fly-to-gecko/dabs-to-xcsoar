@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  */
 public final class Czechia {
     public static final String INDEX = "https://aup.ans.cz/";
-    static final String GEOMETRY = "http://download.xcsoar.org/content/airspace/country/CZ-ASP-National-XCSoar.txt";
+    static final String GEOMETRY = "https://download.xcsoar.org/content/airspace/country/CZ-ASP-National-XCSoar.txt";
 
     static final Pattern ROW = Pattern.compile("<TR>(.*?)</TR>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
     static final Pattern CELL = Pattern.compile("<TD class=\"data\">(.*?)</TD>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
