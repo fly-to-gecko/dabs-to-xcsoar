@@ -1,0 +1,12 @@
+# Build-Ausgaben
+app/build/
+*.class
+*.apk
+*.dex
+# Signaturschlüssel nie einchecken
+*.keystore
+*.jks
+*.properties
+# erzeugte Luftraumdateien
+dabs*.txt
+__pycache__/

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rotes Sperrgebiet (schraffiert) mit weissem Segelflugzeug -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#55E53935"
+        android:pathData="M33,32 L70,28 L80,52 L69,78 L36,77 L26,54 Z" />
+    <path android:strokeColor="#99E53935" android:strokeWidth="1.5"
+        android:pathData="M30,46 L45,30 M28,60 L58,29 M34,71 L72,33 M44,77 L77,44 M58,78 L78,58" />
+    <path android:strokeColor="#FFE53935" android:strokeWidth="3" android:strokeLineJoin="round"
+        android:pathData="M33,32 L70,28 L80,52 L69,78 L36,77 L26,54 Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M19,50 L51,47 L57,47 L89,50 L89,52 L57,53.5 L51,53.5 L19,52 Z
+                          M52.6,39 Q54,35.5 55.4,39 L55,73 L53,73 Z
+                          M47,72 L61,72 L61,74.5 L47,74.5 Z" />
+</vector>
