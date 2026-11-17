@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 
 import dabs.core.Country;
+import dabs.core.LocalGeometry;
 
 /** XCSoar-Ordner finden, Länder laden, Dateien schreiben, Status merken.
  *  Aktualisiert wird nur, wenn die App geöffnet wird – keine Hintergrund-Jobs. */
@@ -40,6 +41,18 @@ public final class Updater {
             if (!d.isDirectory()) continue;
             File asp = new File(d, "airspace");
             out.add(asp.isDirectory() ? asp : d);
+        }
+        return out;
+    }
+
+    /** Alle Ordner mit Luftraumdateien (Datenordner + "airspace") – Quelle für echte Umrisse. */
+    static List<File> localAirspaceDirs() {
+        List<File> out = new ArrayList<>();
+        for (File d : candidates()) {
+            if (!d.isDirectory()) continue;
+            out.add(d);
+            File asp = new File(d, "airspace");
+            if (asp.isDirectory()) out.add(asp);
         }
         return out;
     }
@@ -71,7 +84,12 @@ public final class Updater {
             return msg;
         }
         LocalDate day = Country.today();
+        LocalGeometry local = null;
         for (Country k : Country.values()) {
+            if (enabled(c, k) && k.usesLocalGeometry() && local == null) {
+                local = LocalGeometry.scan(localAirspaceDirs());
+                b.append("Lokale Luftraumdateien für Umrisse: ").append(local.files).append("\n\n");
+            }
             if (!enabled(c, k)) {
                 // abgewählt: eigene Datei entfernen, damit XCSoar keine veralteten Gebiete zeigt
                 if (k != Country.CH) for (File d : dirs) new File(d, k.fileName).delete();
@@ -79,7 +97,7 @@ public final class Updater {
             }
             b.append("■ ").append(k.label).append(" → ").append(k.fileName).append('\n');
             try {
-                Country.Result r = k.fetch(day);
+                Country.Result r = k.fetch(day, local);
                 for (File d : dirs) Country.write(new File(d, k.fileName), r.text);
                 if (r.pdf != null) savePdf(c, r.pdf);
                 b.append("OK ").append(now).append(": ").append(r.count).append(" Gebiete. ").append(r.stand).append('\n');

@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 
 /** PC-Test:
- *   java -cp build/cli dabs.cli.Main [CH|DE|CZ|AT|FR|ALL] [ausgabe-ordner]
+ *   java -cp build/cli dabs.cli.Main [CH|DE|CZ|AT|FR|ALL] [ausgabe-ordner] [ordner-mit-luftraumdateien]
  *   java -cp build/cli dabs.cli.Main --pdf datei.pdf   (nur DABS-Parser testen) */
 public class Main {
     public static void main(String[] a) throws Exception {
@@ -22,11 +22,17 @@ public class Main {
         }
         String which = a.length > 0 ? a[0].toUpperCase() : "CH";
         File dir = new File(a.length > 1 ? a[1] : ".");
+        // optional: Ordner mit eigenen Luftraumdateien (wie im XCSoar-Ordner) für echte Umrisse
+        dabs.core.LocalGeometry local = null;
+        if (a.length > 2) {
+            local = dabs.core.LocalGeometry.scan(java.util.Collections.singletonList(new File(a[2])));
+            System.out.println("Lokale Luftraumdateien: " + local.files);
+        }
         for (Country c : Country.values()) {
             if (!which.equals("ALL") && !which.equals(c.name())) continue;
             System.out.println("== " + c.label + " (" + c.source + ")");
             try {
-                Country.Result r = c.fetch(Country.today());
+                Country.Result r = c.fetch(Country.today(), local);
                 File f = new File(dir, c.fileName);
                 Country.write(f, r.text);
                 System.out.println("   " + r.stand + ": " + r.count + " Gebiete -> " + f);

@@ -23,6 +23,11 @@ public enum Country {
 
     public final String label, fileName, source, link;
 
+    /** Länder, deren Umrisse aus lokalen Luftraumdateien ergänzt werden können. */
+    public boolean usesLocalGeometry() {
+        return this == AT || this == FR;
+    }
+
     Country(String label, String fileName, String source, String link) {
         this.label = label;
         this.fileName = fileName;
@@ -48,6 +53,11 @@ public enum Country {
 
     /** Lädt die heutigen Aktivierungen; der Text ist komplette OpenAir-Datei inkl. Kopf. */
     public Result fetch(LocalDate day) throws Exception {
+        return fetch(day, null);
+    }
+
+    /** @param local Umrisse aus den Luftraumdateien im XCSoar-Ordner (für NOTAM-Länder), darf null sein */
+    public Result fetch(LocalDate day, LocalGeometry local) throws Exception {
         Result r;
         switch (this) {
             case CH: {
@@ -62,8 +72,8 @@ public enum Country {
             }
             case DE: r = Germany.fetch(day); break;
             case CZ: r = Czechia.fetch(day); break;
-            case AT: r = Notams.fetch(Notams.AUSTRIA, Notams.FIR_AT, day); break;
-            case FR: r = Notams.fetch(Notams.FRANCE, Notams.FIR_FR, day); break;
+            case AT: r = Notams.fetch(Notams.AUSTRIA, Notams.FIR_AT, day, local); break;
+            case FR: r = Notams.fetch(Notams.FRANCE, Notams.FIR_FR, day, local); break;
             default: throw new IllegalStateException();
         }
         String now = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.ROOT));

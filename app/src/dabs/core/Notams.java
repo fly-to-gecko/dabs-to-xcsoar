@@ -36,7 +36,7 @@ public final class Notams {
     static final Pattern AREA_CODE = Pattern.compile(
             "\\b(LO[RDPT] ?\\d+[A-Z]?|LF[- ]?[RDP] ?\\d+[A-Z]?\\d?|TRA ?\\d+[A-Z]?\\d?|TSA ?\\d+[A-Z]?\\d?|CBA ?\\d+[A-Z]?\\d?|AZBA|RTBA|AIP SUP \\d+/\\d+)(?![A-Z0-9])");
 
-    public static Country.Result fetch(double[][] centers, String[] firs, LocalDate day) throws Exception {
+    public static Country.Result fetch(double[][] centers, String[] firs, LocalDate day, LocalGeometry local) throws Exception {
         Http h = new Http();
         Set<String> seen = new HashSet<>();   // NOTAM-IDs und -Nummern (Duplikate aus mehreren Abfragen)
         List<Map<String, Object>> items = new ArrayList<>();
@@ -56,7 +56,7 @@ public final class Notams {
             }
         }
         if (failed == centers.length) throw new Exception("NOTAM-Dienst nicht erreichbar");
-        Country.Result r = build(items, firs, day);
+        Country.Result r = build(items, firs, day, local);
         if (failed > 0) r.report.add(0, "⚠ " + failed + " von " + centers.length + " NOTAM-Abfragen fehlgeschlagen");
         return r;
     }
@@ -74,7 +74,7 @@ public final class Notams {
         return o == null ? "" : String.valueOf(o).trim();
     }
 
-    static Country.Result build(List<Map<String, Object>> items, String[] firs, LocalDate day) {
+    static Country.Result build(List<Map<String, Object>> items, String[] firs, LocalDate day, LocalGeometry local) {
         Country.Result r = new Country.Result();
         Instant dayStart = day.atStartOfDay(ZoneOffset.UTC).toInstant();
         Instant dayEnd = dayStart.plusSeconds(86400);
@@ -106,6 +106,40 @@ public final class Notams {
             while (c.find()) pts.add(new double[]{dmsAny(c.group(1)), dmsAny(c.group(2))});
             if (pts.size() >= 3) {
                 for (double[] p : pts) geom.add(Area.dp(p[0], p[1]));
+            } else if (local != null && !local.lookup(text).isEmpty()) {
+                // Gebiet ist in einer Luftraumdatei im XCSoar-Ordner vorhanden -> echter Umriss
+                List<String> missing = new ArrayList<>();
+                List<LocalGeometry.Hit> hits = local.lookup(text, missing);
+                for (LocalGeometry.Hit hit : hits) {
+                    Area a = new Area();
+                    a.cls = classFromQ(q, hit.code);
+                    a.name = hit.code + " " + number + " " + Country.dayTag(day) + " " + when;
+                    a.lower = lo;
+                    a.upper = hi;
+                    a.geometry = hit.geometry;
+                    a.appendTo(b);
+                    r.count++;
+                    r.report.add(String.format(Locale.ROOT, "%-9s %-12s %s - %s %s  [Umriss aus %s]",
+                            number, hit.code, lo, hi, when, hit.file));
+                }
+                if (missing.isEmpty()) continue;
+                // genannte Teile ohne lokalen Umriss: zur Sicherheit zusätzlich der NOTAM-Kreis
+                Matcher qm = Q_CENTER.matcher(formatted(it));
+                if (!qm.find()) continue;
+                double rad = Integer.parseInt(qm.group(3));
+                if (rad > MAX_CIRCLE_NM) continue;
+                Area a = new Area();
+                String lbl = String.join("/", missing);
+                a.cls = classFromQ(q, missing.get(0));
+                a.name = lbl + " " + number + " " + Country.dayTag(day) + " " + when;
+                a.lower = lo;
+                a.upper = hi;
+                a.geometry = Area.circle(Area.dms(qm.group(1)), Area.dms(qm.group(2)), Math.max(rad, 0.5));
+                a.appendTo(b);
+                r.count++;
+                r.report.add(String.format(Locale.ROOT, "%-9s %-12s %s - %s %s  [Kreis ~%.0f NM, nicht in lokalen Dateien]",
+                        number, cut(lbl, 12), lo, hi, when, rad));
+                continue;
             } else {
                 Matcher qm = Q_CENTER.matcher(formatted(it));
                 if (!qm.find()) continue;

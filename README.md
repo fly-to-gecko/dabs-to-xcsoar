@@ -33,8 +33,12 @@ Hinweise:
 - **Schweiz:** Einträge, die Skyguide nicht in die DABS-Karte zeichnet („Activities not shown on the
   DABS Chart Side“, z. B. MIL-Nachtflüge über die ganze Schweiz), erscheinen nur als Hinweis in der App.
 - **Deutschland:** Die DFS WebAUP zeigt laut DFS nur Aktivierungen bis FL100 (Alpen FL130) und ist nicht vollständig.
-- **Österreich/Frankreich:** Nur NOTAMs, die eine Aktivität bedeuten (Q-Code …CA/CS/LW/LP). Ohne
-  Koordinaten im Text ist der Kreis nur **ungefähr**; sehr große Kreise (> 50 NM) nur als Hinweis.
+- **Österreich/Frankreich:** Nur NOTAMs, die eine Aktivität bedeuten (Q-Code …CA/CS/LW/LP).
+  Die Form kommt in dieser Reihenfolge aus: (1) Koordinaten im NOTAM-Text, (2) **deinen eigenen
+  Luftraumdateien im XCSoar-Ordner** – nennt das NOTAM z. B. „LF-R368 A B C1“ oder „LF-D596 A/B/C“,
+  sucht die App diese Teilgebiete dort und übernimmt den echten Umriss (die Dateien werden nur gelesen),
+  (3) sonst der **ungefähre** Kreis aus dem NOTAM. Fehlt ein genannter Teil in deinen Dateien, wird
+  für ihn zusätzlich der Kreis gezeichnet. Sehr große Kreise (> 50 NM) nur als Hinweis.
   Wer in XCSoar 7.45 die eingebaute NOTAM-Anzeige nutzt, sieht diese Gebiete evtl. doppelt.
 - Gibt es heute keine Aktivierung, enthält die Datei einen winzigen Platzhalter bei 0°N 0°E,
   weil XCSoar leere OpenAir-Dateien ablehnt.
