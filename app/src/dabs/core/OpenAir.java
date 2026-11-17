@@ -70,7 +70,7 @@ public final class OpenAir {
         return s;
     }
 
-    static String fmtCoord(double lat, double lon) {
+    public static String fmtCoord(double lat, double lon) {
         return dms(lat, 2) + (lat >= 0 ? " N " : " S ") + dms(lon, 3) + (lon >= 0 ? " E" : " W");
     }
 

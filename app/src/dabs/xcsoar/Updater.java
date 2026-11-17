@@ -7,17 +7,17 @@ import android.os.Build;
 import android.os.Environment;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
-import dabs.core.Converter;
+import dabs.core.Country;
 
-/** Gemeinsame Logik: XCSoar-Ordner finden, aktualisieren, Status merken.
+/** XCSoar-Ordner finden, Länder laden, Dateien schreiben, Status merken.
  *  Aktualisiert wird nur, wenn die App geöffnet wird – keine Hintergrund-Jobs. */
 public final class Updater {
 
@@ -33,30 +33,68 @@ public final class Updater {
         };
     }
 
-    /** Ziel je Installation: "airspace"-Unterordner (XCSoar 7.45+) oder der Datenordner selbst. */
-    static List<File> targetFiles() {
+    /** Zielordner je Installation: "airspace"-Unterordner (XCSoar 7.45+) oder der Datenordner selbst. */
+    static List<File> targetDirs() {
         List<File> out = new ArrayList<>();
         for (File d : candidates()) {
             if (!d.isDirectory()) continue;
             File asp = new File(d, "airspace");
-            out.add(new File(asp.isDirectory() ? asp : d, Converter.FILE_NAME));
+            out.add(asp.isDirectory() ? asp : d);
         }
         return out;
     }
 
-    static void copy(File from, File to) throws Exception {
-        File tmp = new File(to.getParentFile(), to.getName() + ".tmp");
-        try (FileInputStream in = new FileInputStream(from); FileOutputStream o = new FileOutputStream(tmp)) {
-            byte[] buf = new byte[16384];
-            int n;
-            while ((n = in.read(buf)) > 0) o.write(buf, 0, n);
-        }
-        if (!tmp.renameTo(to)) { to.delete(); if (!tmp.renameTo(to)) throw new Exception("Schreiben fehlgeschlagen: " + to); }
+    static SharedPreferences prefs(Context c) {
+        return c.getSharedPreferences("status", Context.MODE_PRIVATE);
     }
 
-    /** Lokale Kopie des Original-DABS, wird über PdfProvider angezeigt. */
+    static boolean enabled(Context c, Country k) {
+        return prefs(c).getBoolean("on_" + k.name(), k == Country.CH);
+    }
+
+    static void setEnabled(Context c, Country k, boolean on) {
+        prefs(c).edit().putBoolean("on_" + k.name(), on).apply();
+    }
+
     static File pdfFile(Context c) {
         return new File(c.getCacheDir(), "dabs.pdf");
+    }
+
+    /** Läuft im Hintergrund-Thread. Gibt den Statustext zurück. */
+    static String runUpdate(Context c) {
+        String now = new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY).format(new Date());
+        StringBuilder b = new StringBuilder();
+        List<File> dirs = targetDirs();
+        if (dirs.isEmpty()) {
+            String msg = "FEHLER " + now + ": XCSoar-Datenordner nicht gefunden. XCSoar einmal starten?";
+            prefs(c).edit().putString("last", msg).apply();
+            return msg;
+        }
+        LocalDate day = Country.today();
+        for (Country k : Country.values()) {
+            if (!enabled(c, k)) {
+                // abgewählt: eigene Datei entfernen, damit XCSoar keine veralteten Gebiete zeigt
+                if (k != Country.CH) for (File d : dirs) new File(d, k.fileName).delete();
+                continue;
+            }
+            b.append("■ ").append(k.label).append(" → ").append(k.fileName).append('\n');
+            try {
+                Country.Result r = k.fetch(day);
+                for (File d : dirs) Country.write(new File(d, k.fileName), r.text);
+                if (r.pdf != null) savePdf(c, r.pdf);
+                b.append("OK ").append(now).append(": ").append(r.count).append(" Gebiete. ").append(r.stand).append('\n');
+                for (String line : r.report) b.append("  ").append(line).append('\n');
+            } catch (Throwable t) {
+                b.append("FEHLER ").append(now).append(": ").append(t.getMessage()).append('\n');
+                b.append("  (alte Datei bleibt – Datum im Gebietsnamen prüfen)\n");
+            }
+            b.append('\n');
+        }
+        b.append("Ordner:\n");
+        for (File d : dirs) b.append("  ").append(d).append('\n');
+        String msg = b.toString();
+        prefs(c).edit().putString("last", msg).apply();
+        return msg;
     }
 
     static void savePdf(Context c, byte[] pdf) {
@@ -64,42 +102,6 @@ public final class Updater {
             o.write(pdf);
         } catch (Exception ignored) {
             // Anzeige des PDFs ist optional
-        }
-    }
-
-    static SharedPreferences prefs(Context c) {
-        return c.getSharedPreferences("status", Context.MODE_PRIVATE);
-    }
-
-    /** Läuft im Hintergrund-Thread. Gibt Statustext zurück. */
-    static String runUpdate(Context c) {
-        String now = new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY).format(new Date());
-        SharedPreferences.Editor e = prefs(c).edit();
-        try {
-            List<File> targets = targetFiles();
-            if (targets.isEmpty()) throw new Exception("XCSoar-Datenordner nicht gefunden. XCSoar einmal starten?");
-            Converter.Summary s = Converter.run("today", targets.get(0));
-            savePdf(c, s.pdf);
-            StringBuilder b = new StringBuilder();
-            b.append("OK ").append(now).append(": DABS ").append(s.date).append(" Version ").append(s.version)
-                    .append(", ").append(s.count).append(" Aktivierungen\n");
-            for (File t : targets) {
-                try {
-                    if (!t.equals(s.file)) copy(s.file, t);
-                    b.append("→ ").append(t).append('\n');
-                } catch (Exception ex) {
-                    b.append("✗ ").append(t).append(": ").append(ex.getMessage()).append('\n');
-                }
-            }
-            b.append('\n');
-            for (String line : s.report) b.append(line).append('\n');
-            String msg = b.toString();
-            e.putString("last", msg).putString("lastOkDate", s.date).putBoolean("lastFailed", false).apply();
-            return msg;
-        } catch (Throwable t) {
-            String msg = "FEHLER " + now + ": " + t.getMessage();
-            e.putString("lastError", msg).putBoolean("lastFailed", true).apply();
-            return msg;
         }
     }
 

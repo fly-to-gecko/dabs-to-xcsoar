@@ -1,6 +1,6 @@
 package dabs.cli;
 
-import dabs.core.Converter;
+import dabs.core.Country;
 import dabs.core.DabsPdf;
 import dabs.core.OpenAir;
 
@@ -8,8 +8,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.HashMap;
 
-/** PC-Test:  java -cp build/cli dabs.cli.Main [today|tomorrow] [ausgabe.txt]
- *            java -cp build/cli dabs.cli.Main --pdf datei.pdf   (nur Parser testen) */
+/** PC-Test:
+ *   java -cp build/cli dabs.cli.Main [CH|DE|CZ|AT|FR|ALL] [ausgabe-ordner]
+ *   java -cp build/cli dabs.cli.Main --pdf datei.pdf   (nur DABS-Parser testen) */
 public class Main {
     public static void main(String[] a) throws Exception {
         if (a.length >= 2 && a[0].equals("--pdf")) {
@@ -19,11 +20,20 @@ public class Main {
             for (String s : o.report) System.out.println("  " + s);
             return;
         }
-        String day = a.length > 0 ? a[0] : "today";
-        File out = new File(a.length > 1 ? a[1] : Converter.FILE_NAME);
-        Converter.Summary s = Converter.run(day, out);
-        System.out.println("DABS " + s.date + " V" + s.version + " (" + s.generated + "): "
-                + s.count + " Aktivierungen -> " + s.file);
-        for (String line : s.report) System.out.println("  " + line);
+        String which = a.length > 0 ? a[0].toUpperCase() : "CH";
+        File dir = new File(a.length > 1 ? a[1] : ".");
+        for (Country c : Country.values()) {
+            if (!which.equals("ALL") && !which.equals(c.name())) continue;
+            System.out.println("== " + c.label + " (" + c.source + ")");
+            try {
+                Country.Result r = c.fetch(Country.today());
+                File f = new File(dir, c.fileName);
+                Country.write(f, r.text);
+                System.out.println("   " + r.stand + ": " + r.count + " Gebiete -> " + f);
+                for (String s : r.report) System.out.println("   " + s);
+            } catch (Exception e) {
+                System.out.println("   FEHLER: " + e);
+            }
+        }
     }
 }

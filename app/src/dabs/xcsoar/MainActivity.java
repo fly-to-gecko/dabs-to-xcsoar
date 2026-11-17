@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -35,11 +36,22 @@ public class MainActivity extends Activity {
         l.addView(title);
 
         TextView info = new TextView(this);
-        info.setText("Lädt beim Öffnen der App die tagesaktuellen Militär-Lufträume (Skyguide DABS) "
-                + "und schreibt sie als dabs.txt in alle XCSoar-Ordner (bei XCSoar 7.45+ in „airspace“).\n"
-                + "In XCSoar einmalig unter Konfiguration → Standort-Dateien → "
-                + "Luftraum dabs.txt zusätzlich auswählen.\n");
+        info.setText("Lädt beim Öffnen der App die heute aktiven Militär-/Sperrgebiete der gewählten Länder "
+                + "und schreibt je Land eine OpenAir-Datei in alle XCSoar-Ordner (bei XCSoar 7.45+ in „airspace“).\n"
+                + "In XCSoar einmalig unter Konfiguration → Standort-Dateien → Luftraum die Dateien "
+                + "zusätzlich auswählen.\n");
         l.addView(info);
+
+        TextView lt = new TextView(this);
+        lt.setText("Länder:");
+        l.addView(lt);
+        for (dabs.core.Country k : dabs.core.Country.values()) {
+            CheckBox cb = new CheckBox(this);
+            cb.setText(k.label + "  (" + k.fileName + ")");
+            cb.setChecked(Updater.enabled(this, k));
+            cb.setOnCheckedChangeListener((v, on) -> Updater.setEnabled(this, k, on));
+            l.addView(cb);
+        }
 
         grant = new Button(this);
         grant.setText("Dateizugriff erlauben");
@@ -85,16 +97,9 @@ public class MainActivity extends Activity {
     private void showStatus(String fresh) {
         StringBuilder s = new StringBuilder();
         if (!Updater.hasStorageAccess(this)) s.append("⚠ Dateizugriff fehlt – bitte erlauben.\n\n");
-        java.util.List<File> ts = Updater.hasStorageAccess(this) ? Updater.targetFiles() : new java.util.ArrayList<>();
-        s.append("Ziele:\n");
-        if (ts.isEmpty()) s.append("(kein XCSoar-Ordner gefunden)\n");
-        for (File f : ts) s.append("  ").append(f.getPath()).append('\n');
-        s.append('\n');
         if (fresh != null) s.append(fresh);
         else {
             String last = Updater.prefs(this).getString("last", null);
-            if (Updater.prefs(this).getBoolean("lastFailed", false))
-                s.append(Updater.prefs(this).getString("lastError", "")).append("\n\nLetzter Erfolg:\n");
             s.append(last != null ? last : "Noch kein Update gelaufen.");
         }
         status.setText(s);
@@ -104,7 +109,7 @@ public class MainActivity extends Activity {
         if (running) return;
         running = true;
         update.setEnabled(false);
-        status.setText("Lade DABS …");
+        status.setText("Lade Daten …");
         new Thread(() -> {
             String r = Updater.runUpdate(getApplicationContext());
             runOnUiThread(() -> { running = false; update.setEnabled(true); showStatus(r); });

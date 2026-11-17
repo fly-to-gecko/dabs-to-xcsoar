@@ -24,6 +24,26 @@ public final class Converter {
         public List<String> report;
         public File file;
         public byte[] pdf; // Original-DABS, wie heruntergeladen
+        public String text; // OpenAir
+    }
+
+    /** Nur laden und umwandeln, ohne zu schreiben. */
+    public static Summary convert(String day) throws Exception {
+        byte[] pdf = fetch(DABS_URL + day);
+        DabsPdf.Result dabs = DabsPdf.parse(pdf);
+        if (dabs.date == null) throw new Exception("DABS-PDF unlesbar (kein Datum gefunden)");
+        String iso = OpenAir.isoDate(dabs.date);
+        String json = new String(fetch(SHV_URL), Charset.forName("UTF-8"));
+        OpenAir.Output o = OpenAir.build(dabs, OpenAir.indexShv(json, iso));
+        Summary s = new Summary();
+        s.date = iso;
+        s.version = dabs.version;
+        s.generated = dabs.generated;
+        s.count = dabs.entries.size();
+        s.report = o.report;
+        s.pdf = pdf;
+        s.text = o.text;
+        return s;
     }
 
     public static byte[] fetch(String url) throws Exception {
