@@ -37,7 +37,7 @@ public final class Converter {
         DabsPdf.Result dabs = DabsPdf.parse(pdf);
         if (dabs.date == null) throw new Exception("DABS-PDF unlesbar (kein Datum gefunden)");
         String iso = OpenAir.isoDate(dabs.date);
-        String json = new String(fetch(SHV_URL), Charset.forName("UTF-8"));
+        String json = new String(new Http().cached(SHV_URL, Http.DAY_MS), Charset.forName("UTF-8")); // Grenzen: 1x täglich
         OpenAir.Output o = OpenAir.build(dabs, OpenAir.indexShv(json, iso), local);
         Summary s = new Summary();
         s.date = iso;
@@ -74,7 +74,7 @@ public final class Converter {
         DabsPdf.Result dabs = DabsPdf.parse(pdf);
         if (dabs.date == null) throw new Exception("DABS-PDF unlesbar (kein Datum gefunden)");
         String iso = OpenAir.isoDate(dabs.date);
-        String json = new String(fetch(SHV_URL), Charset.forName("UTF-8"));
+        String json = new String(new Http().cached(SHV_URL, Http.DAY_MS), Charset.forName("UTF-8")); // Grenzen: 1x täglich
         Map<String, List<Map<String, Object>>> geo = OpenAir.indexShv(json, iso);
         OpenAir.Output o = OpenAir.build(dabs, geo);
 

@@ -61,7 +61,7 @@ public final class Updater {
         l.add(new Install("org.xcsoar", "XCSoar", new File(root, "Android/media/org.xcsoar")));
         l.add(new Install("org.xcsoar.testing", "XCSoar Testing", new File(root, "Android/media/org.xcsoar.testing")));
         l.add(new Install("de.opensoar", "OpenSoar", new File(root, "Android/media/de.opensoar")));
-        l.add(new Install(null, "XCSoar (alter Ordner XCSoarData)", new File(root, "XCSoarData")));
+        l.add(new Install(null, L.s("legacy_dir"), new File(root, "XCSoarData")));
         return l;
     }
 
@@ -168,8 +168,14 @@ public final class Updater {
     }
 
     /** Alle gewählten Länder neu laden (parallel); abgewählte: eigene Dateien entfernen. */
+    /** Wurde in diesem App-Prozess schon automatisch geladen? (Prozess neu = App neu gestartet) */
+    static boolean startedInThisProcess;
+
     static void updateAll(Context ctx) {
+        startedInThisProcess = true;
         Context c = ctx.getApplicationContext();
+        prefs(c).edit().putString("lastRunDay", today()).apply();
+        dabs.core.Http.cacheDir = new File(c.getCacheDir(), "http");
         synchronized (Updater.class) { local = null; }
         for (Country k : Country.values()) {
             if (enabled(c, k)) update(c, k);
@@ -181,6 +187,7 @@ public final class Updater {
     static void update(Context ctx, Country k) {
         Context c = ctx.getApplicationContext();
         if (!RUNNING.add(k)) return; // läuft schon
+        dabs.core.Http.cacheDir = new File(c.getCacheDir(), "http");
         prefs(c).edit().putString("st_" + k.name(), "run").putInt("pid_" + k.name(), android.os.Process.myPid()).apply();
         notifyUi();
         POOL.execute(() -> {
@@ -189,7 +196,7 @@ public final class Updater {
             try {
                 List<Install> targets = activeInstalls(c);
                 if (targets.isEmpty())
-                    throw new Exception("Keine XCSoar-Installation gefunden bzw. gewählt (Einstellungen). XCSoar einmal starten?");
+                    throw new Exception(L.s("err_no_install"));
                 LocalGeometry lg = k.usesLocalGeometry() ? localGeometry(c) : null;
                 Country.Result r = k.fetch(Country.today(), lg);
                 for (Install i : targets) Country.write(new File(i.target(), k.fileName), r.text);
@@ -267,7 +274,12 @@ public final class Updater {
     static String when(String stored) {
         if (stored == null || stored.length() < 7) return stored == null ? "" : stored;
         String today = new SimpleDateFormat("dd.MM.", Locale.GERMANY).format(new Date());
-        return stored.startsWith(today) ? "heute " + stored.substring(7).trim() : stored;
+        return stored.startsWith(today) ? L.s("st_today", stored.substring(7).trim()) : stored;
+    }
+
+    /** Wurde heute schon geladen? (sonst beim Öffnen automatisch laden) */
+    static boolean loadedToday(Context c) {
+        return today().equals(prefs(c).getString("lastRunDay", ""));
     }
 
     static String today() {

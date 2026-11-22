@@ -55,7 +55,7 @@ public final class Czechia {
                 } else rows.put(r.key(), r);
             }
         }
-        String geo = new String(h.request(GEOMETRY, null), Charset.forName("ISO-8859-1"));
+        String geo = new String(h.cached(GEOMETRY, Http.DAY_MS), Charset.forName("ISO-8859-1")); // Grenzen: 1x täglich
         Country.Result res = build(new ArrayList<>(rows.values()), indexOpenAir(geo), day, local);
         res.stand = stand;
         if (!cancelled.isEmpty()) res.report.add("Storniert (UUP): " + String.join(", ", cancelled));

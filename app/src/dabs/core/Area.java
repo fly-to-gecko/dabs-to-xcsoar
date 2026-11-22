@@ -23,6 +23,10 @@ public final class Area {
     public String name;
     public String lower, upper;     // bereits im OpenAir-Format
     public List<String> geometry = new ArrayList<>(); // DP/V/DC/DB-Zeilen
+    /** Sprachabhängige Texte in den OpenAir-Namen (von der App gesetzt). */
+    public static String NOTE_PREFIX = "Grenzen aus";
+    public static String WARNING_LABEL = "Warnung";
+
     public String note;             // z.B. Dateiname, wenn die Grenzen aus einer XCSoar-Datei stammen
 
     public void appendTo(StringBuilder b) {
@@ -39,7 +43,7 @@ public final class Area {
     public static String category(String cls) {
         switch (cls) {
             case "Q": return "D";
-            case "WARNING": return "Warnung";
+            case "WARNING": return WARNING_LABEL;
             default: return cls;
         }
     }
@@ -47,7 +51,7 @@ public final class Area {
     /** Name in XCSoar: "<Name> [<Kategorie>]" + ggf. "Grenzen aus <Datei>" */
     public static String label(String name, String cls, String note) {
         String s = name.replaceAll("\\s+", " ").trim() + " [" + category(cls) + "]"; // AN muss einzeilig sein
-        if (note != null) s += " Grenzen aus " + note;
+        if (note != null) s += " " + NOTE_PREFIX + " " + note;
         return s;
     }
 

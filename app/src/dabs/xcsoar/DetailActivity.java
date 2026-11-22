@@ -24,7 +24,7 @@ public class DetailActivity extends Activity implements Updater.Listener {
         ui = new Ui(this);
         k = Country.valueOf(getIntent().getStringExtra("country"));
         LinearLayout col = ui.page();
-        ui.backHeader(col, k.label);
+        ui.backHeader(col, L.country(k));
         body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
         col.addView(body);
@@ -63,11 +63,11 @@ public class DetailActivity extends Activity implements Updater.Listener {
         LinearLayout btns = new LinearLayout(this);
         btns.setOrientation(LinearLayout.HORIZONTAL);
         btns.setPadding(0, ui.dp(10), 0, 0);
-        Button src = ui.button(k == Country.CH ? "Original-DABS (PDF)" : "Originalquelle öffnen", true);
+        Button src = ui.button(k == Country.CH ? L.s("open_dabs_pdf") : L.s("open_source"), true);
         src.setOnClickListener(v -> MainActivity.openSource(this, k));
         btns.addView(src);
         if (s.state != Updater.State.OFF) {
-            Button again = ui.button("Neu laden", false);
+            Button again = ui.button(L.s("reload"), false);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.leftMargin = ui.dp(10);
             again.setLayoutParams(lp);
@@ -79,37 +79,35 @@ public class DetailActivity extends Activity implements Updater.Listener {
 
         // Fehler
         if (s.state == Updater.State.ERROR && !s.error.isEmpty()) {
-            body.addView(ui.section("Fehler"));
+            body.addView(ui.section(L.s("sec_error")));
             LinearLayout c = ui.card(true);
-            c.addView(ui.text(s.error, 14, Ui.RED, false));
-            c.addView(ui.text("Die Datei vom letzten erfolgreichen Laden bleibt bestehen – Datum im Gebietsnamen beachten.",
-                    13, ui.sub, false));
+            c.addView(ui.text(L.core(s.error), 14, Ui.RED, false));
+            c.addView(ui.text(L.s("keep_old"), 13, ui.sub, false));
             body.addView(c);
         }
 
         // Info
-        body.addView(ui.section("Info"));
+        body.addView(ui.section(L.s("sec_info")));
         LinearLayout info = ui.card(true);
-        info.addView(kv("Quelle", k.source));
-        info.addView(kv("Datei", k.fileName));
-        if (!s.stand.isEmpty()) info.addView(kv("Stand", s.stand));
-        if (k.usesLocalGeometry()) info.addView(kv("Ersatz-Grenzen aus",
-                s.localFiles.isEmpty() ? "– (keine in XCSoar eingebundene Luftraumdatei)" : s.localFiles));
+        info.addView(kv(L.s("k_source"), k.source));
+        info.addView(kv(L.s("k_file"), k.fileName));
+        if (!s.stand.isEmpty()) info.addView(kv(L.s("k_stand"), L.core(s.stand)));
+        if (k.usesLocalGeometry()) info.addView(kv(L.s("k_local"),
+                s.localFiles.isEmpty() ? L.s("no_local") : s.localFiles));
         body.addView(info);
 
         // Gebiete
         if (s.state == Updater.State.OK || (!s.report.isEmpty() && s.state != Updater.State.OFF)) {
-            body.addView(ui.section("Gebiete heute (" + s.count + ")"));
+            body.addView(ui.section(L.s("sec_areas", s.count)));
             LinearLayout c = ui.card(true);
             HorizontalScrollView hs = new HorizontalScrollView(this);
-            TextView rep = ui.text(s.report.isEmpty() ? "Heute keine Aktivierungen." : s.report, 12, ui.text, false);
+            TextView rep = ui.text(s.report.isEmpty() ? L.s("no_areas") : L.core(s.report), 12, ui.text, false);
             rep.setTypeface(Typeface.MONOSPACE);
             rep.setTextIsSelectable(true);
             hs.addView(rep);
             c.addView(hs);
             body.addView(c);
-            TextView hint = ui.text("Zeiten in UTC. „Kreis ~x NM“ = ungefähre Lage aus dem NOTAM; "
-                    + "„Grenzen aus …“ = Umriss aus einer in XCSoar eingebundenen Datei.", 12, ui.sub, false);
+            TextView hint = ui.text(L.s("areas_hint"), 12, ui.sub, false);
             hint.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), 0);
             body.addView(hint);
         }
@@ -128,12 +126,12 @@ public class DetailActivity extends Activity implements Updater.Listener {
 
     static String stateText(Updater.State st) {
         switch (st) {
-            case OK: return "Aktuell";
-            case RUNNING: return "Wird geladen";
-            case ERROR: return "Fehler beim Laden";
-            case INTERRUPTED: return "Abgebrochen";
-            case OFF: return "Ausgeschaltet";
-            default: return "Noch nicht geladen";
+            case OK: return L.s("state_ok");
+            case RUNNING: return L.s("state_running");
+            case ERROR: return L.s("state_error");
+            case INTERRUPTED: return L.s("state_interrupted");
+            case OFF: return L.s("state_off");
+            default: return L.s("state_never");
         }
     }
 }

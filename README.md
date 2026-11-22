@@ -46,7 +46,14 @@ Hinweise:
   weil XCSoar leere OpenAir-Dateien ablehnt.
 - Abgewählte Länder: die App löscht deren Datei, damit keine veralteten Gebiete angezeigt werden.
 
-Die App läuft **nicht im Hintergrund**: Daten werden nur geholt, wenn du sie öffnest.
+Die App läuft **nicht im Hintergrund**. Geladen wird automatisch nur beim **Start der App** und an
+einem **neuen Tag** – nicht beim Entsperren oder Zurückwechseln (dafür gibt es den großen Knopf).
+Das schont die Server der Flugsicherungen. Selten geänderte Daten (SHV-Gebietsgrenzen, tschechische
+Geometriedatei) werden höchstens einmal täglich geladen und zwischengespeichert; die tagesaktuellen
+Daten (DABS, AUP, NOTAM) werden jedes Mal frisch geholt.
+
+**Sprachen:** Deutsch, Englisch, Französisch – standardmäßig die Systemsprache, umstellbar unter
+⚙ → Sprache. Auch der Hinweis „Grenzen aus …“ in den Gebietsnamen folgt der Sprache.
 
 ## Bedienung
 
@@ -58,7 +65,7 @@ Die App läuft **nicht im Hintergrund**: Daten werden nur geholt, wenn du sie ö
 - **Großer Knopf unten** „Alle neu laden“ (auch im Flug gut zu treffen); während des Ladens zeigt er
   den Fortschritt („3 von 5 fertig“).
 - **⚙ Einstellungen** mit Unterseiten: So funktioniert's · XCSoar-Versionen (welche Installationen
-  beschrieben werden, mit erkannter Version) · Dateizugriff · Copyright & Quellen.
+  beschrieben werden, mit erkannter Version) · Dateizugriff · Sprache · Copyright & Quellen.
 
 ## Installation
 

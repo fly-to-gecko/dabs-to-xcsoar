@@ -20,10 +20,15 @@ import dabs.core.Country;
 
 /** Startseite: Länder mit Häkchen, Ampel je Land und Link zur Originalquelle. */
 public class MainActivity extends Activity implements Updater.Listener {
-    /** true, wenn wir selbst eine andere Seite öffnen – dann beim Zurückkommen nicht neu laden. */
-    static boolean skipReload;
-    /** von den Einstellungen gesetzt, wenn neu geladen werden soll */
+    /**
+     * Geladen wird nur beim Neustart der App (neue Activity) oder wenn ein neuer Tag begonnen hat –
+     * nicht beim Entsperren oder Zurückwechseln (schont die Server der Flugsicherungen).
+     */
+    private boolean pendingLoad;
+    /** von den Einstellungen gesetzt, wenn neu geladen werden soll (z. B. andere XCSoar-Auswahl) */
     static boolean dirty;
+    /** Sprache in den Einstellungen geändert -> Seite neu aufbauen (ohne neu zu laden) */
+    static boolean languageChanged;
 
     private Ui ui;
     private LinearLayout list;
@@ -34,6 +39,8 @@ public class MainActivity extends Activity implements Updater.Listener {
     protected void onCreate(Bundle b) {
         Ui.theme(this);
         super.onCreate(b);
+        // nur beim echten Neustart der App (Prozess neu) – nicht bei neuer Seite im laufenden Prozess
+        pendingLoad = !Updater.startedInThisProcess;
         ui = new Ui(this);
         LinearLayout col = ui.pageWithBottom();
 
@@ -46,13 +53,12 @@ public class MainActivity extends Activity implements Updater.Listener {
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setPadding(ui.dp(12), 0, ui.dp(8), 0);
-        titles.addView(ui.text("DABS für XCSoar", 21, ui.text, true));
-        titles.addView(ui.text("Aktive Militär-Lufträume · " + Updater.today(), 13, ui.sub, false));
+        titles.addView(ui.text(L.s("app_name"), 21, ui.text, true));
+        titles.addView(ui.text(L.s("subtitle", Updater.today()), 13, ui.sub, false));
         head.addView(titles, Ui.weight1());
         TextView gear = ui.iconButton("⚙");
-        gear.setContentDescription("Einstellungen");
+        gear.setContentDescription(L.s("settings"));
         gear.setOnClickListener(v -> {
-            skipReload = true;
             startActivity(new Intent(this, SettingsActivity.class));
         });
         head.addView(gear);
@@ -60,27 +66,27 @@ public class MainActivity extends Activity implements Updater.Listener {
 
         // Hinweis, wenn der Dateizugriff fehlt
         LinearLayout sc = ui.card(true);
-        sc.addView(ui.text("Dateizugriff fehlt", 16, Ui.RED, true));
-        TextView st = ui.text("Die App braucht „Zugriff auf alle Dateien“, um die Lufträume in den XCSoar-Ordner zu schreiben.", 14, ui.sub, false);
+        sc.addView(ui.text(L.s("storage_missing"), 16, Ui.RED, true));
+        TextView st = ui.text(L.s("storage_why_main"), 14, ui.sub, false);
         st.setPadding(0, ui.dp(4), 0, ui.dp(8));
         sc.addView(st);
-        Button grant = ui.button("Dateizugriff erlauben", true);
+        Button grant = ui.button(L.s("storage_grant"), true);
         grant.setOnClickListener(v -> requestStorage());
         sc.addView(grant);
         storageCard = sc;
         col.addView(sc);
 
-        col.addView(ui.section("Länder"));
+        col.addView(ui.section(L.s("countries")));
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         col.addView(list);
 
         // großer Knopf unten (fest, scrollt nicht weg)
-        reloadBtn = ui.bigButton("⟳  Alle neu laden");
+        reloadBtn = ui.bigButton(L.s("reload_all"));
         reloadBtn.setOnClickListener(v -> reload());
         ui.bottom.addView(reloadBtn);
 
-        TextView foot = ui.text("Version " + versionName() + " (Beta) · ohne Gewähr – maßgebend sind AIP, DABS/AUP und NOTAM",
+        TextView foot = ui.text(L.s("footer", versionName()),
                 12, ui.sub, false);
         foot.setGravity(Gravity.CENTER);
         foot.setPadding(ui.dp(8), ui.dp(20), ui.dp(8), 0);
@@ -90,15 +96,16 @@ public class MainActivity extends Activity implements Updater.Listener {
     @Override
     protected void onResume() {
         super.onResume();
+        if (languageChanged) { languageChanged = false; recreate(); return; }
         Updater.setListener(this);
         boolean ok = Updater.hasStorageAccess(this);
         storageCard.setVisibility(ok ? View.GONE : View.VISIBLE);
         if (ok) {
             Updater.cancelOldJobs(this);
-            if (dirty || !skipReload) reload(); // jedes Öffnen der App holt die aktuellen Daten
+            if (pendingLoad || dirty || !Updater.loadedToday(this)) reload();
+            pendingLoad = false;
+            dirty = false;
         }
-        skipReload = false;
-        dirty = false;
         changed();
     }
 
@@ -110,7 +117,7 @@ public class MainActivity extends Activity implements Updater.Listener {
 
     private void reload() {
         if (!Updater.hasStorageAccess(this)) {
-            Toast.makeText(this, "Bitte zuerst den Dateizugriff erlauben", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, L.s("toast_storage_first"), Toast.LENGTH_SHORT).show();
             return;
         }
         Updater.updateAll(this);
@@ -131,10 +138,10 @@ public class MainActivity extends Activity implements Updater.Listener {
         }
         // großer Knopf zeigt den Fortschritt
         if (Updater.anyRunning()) {
-            reloadBtn.setText("Lädt …  " + done + " von " + on + " fertig");
+            reloadBtn.setText(L.s("loading_progress", done, on));
             reloadBtn.setAlpha(0.7f);
         } else {
-            reloadBtn.setText("⟳  Alle neu laden");
+            reloadBtn.setText(L.s("reload_all"));
             reloadBtn.setAlpha(1f);
         }
     }
@@ -157,7 +164,7 @@ public class MainActivity extends Activity implements Updater.Listener {
         LinearLayout mid = new LinearLayout(this);
         mid.setOrientation(LinearLayout.VERTICAL);
         mid.setPadding(ui.dp(4), 0, ui.dp(8), 0);
-        mid.addView(ui.text(k.label, 17, s.state == Updater.State.OFF ? ui.sub : ui.text, true));
+        mid.addView(ui.text(L.country(k), 17, s.state == Updater.State.OFF ? ui.sub : ui.text, true));
         TextView line = ui.text(subline(s), 13, s.state == Updater.State.ERROR ? Ui.RED : ui.sub, false);
         mid.addView(line);
         c.addView(mid, Ui.weight1());
@@ -165,7 +172,7 @@ public class MainActivity extends Activity implements Updater.Listener {
         View icon = ui.statusIcon(s.state);
         c.addView(icon);
 
-        Button src = ui.button(k == Country.CH ? "DABS-PDF" : "Quelle", false);
+        Button src = ui.button(L.s("source"), false); // Schweiz: öffnet das ausgewertete DABS-PDF
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, ui.dp(48));
         lp.leftMargin = ui.dp(10);
         src.setLayoutParams(lp);
@@ -173,7 +180,6 @@ public class MainActivity extends Activity implements Updater.Listener {
         c.addView(src);
 
         c.setOnClickListener(v -> {
-            skipReload = true;
             startActivity(new Intent(this, DetailActivity.class).putExtra("country", k.name()));
         });
         return c;
@@ -181,22 +187,21 @@ public class MainActivity extends Activity implements Updater.Listener {
 
     static String subline(Updater.Status s) {
         switch (s.state) {
-            case OFF: return "aus";
-            case RUNNING: return "lädt …";
+            case OFF: return L.s("st_off");
+            case RUNNING: return L.s("st_loading");
             case OK: {
-                String t = s.count + (s.count == 1 ? " Gebiet" : " Gebiete") + " · " + Updater.when(s.time);
-                if (s.report.contains("Grenzen aus")) t += " · mit Ersatz-Grenzen";
+                String t = L.s(s.count == 1 ? "st_areas1" : "st_areas", s.count) + " · " + Updater.when(s.time);
+                if (s.report.contains("Grenzen aus")) t += " · " + L.s("st_with_local");
                 return t;
             }
-            case ERROR: return "Fehler · antippen für Details";
-            case INTERRUPTED: return "abgebrochen – unten neu laden";
-            default: return "noch nicht geladen";
+            case ERROR: return L.s("st_error");
+            case INTERRUPTED: return L.s("st_interrupted");
+            default: return L.s("st_never");
         }
     }
 
     /** Originalquelle öffnen; Schweiz: genau das ausgewertete DABS-PDF. */
     static void openSource(Activity a, Country k) {
-        skipReload = true;
         if (k == Country.CH) {
             File f = Updater.pdfFile(a);
             if (f.isFile() && f.length() > 0) {
@@ -214,13 +219,12 @@ public class MainActivity extends Activity implements Updater.Listener {
         try {
             a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(k.link)));
         } catch (Exception e) {
-            skipReload = false;
-            Toast.makeText(a, "Kein Browser gefunden", Toast.LENGTH_SHORT).show();
+            Toast.makeText(a, L.s("toast_no_browser"), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void requestStorage() {
-        skipReload = false; // nach dem Erlauben gleich laden
+        dirty = true; // nach dem Erlauben gleich laden
         if (Build.VERSION.SDK_INT >= 30) {
             try {
                 startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,

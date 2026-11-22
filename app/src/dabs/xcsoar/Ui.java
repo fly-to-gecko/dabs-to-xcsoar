@@ -44,6 +44,7 @@ final class Ui {
 
     /** Vor super.onCreate aufrufen. */
     static void theme(Activity a) {
+        L.init(a);
         boolean dark = (a.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         a.setTheme(dark ? android.R.style.Theme_Material_NoActionBar : android.R.style.Theme_Material_Light_NoActionBar);
