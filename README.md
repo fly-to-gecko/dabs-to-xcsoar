@@ -93,7 +93,7 @@ Die App fragt so wenig wie möglich an:
 
 📱 **Schritt-für-Schritt-Anleitung: [INSTALL.md](INSTALL.md)** (English: [INSTALL.en.md](INSTALL.en.md))
 
-Kurz: neueste `dabs-xcsoar-<version>.apk` unter [Releases](../../releases) aufs Handy laden, Installation
+Kurz: [APK herunterladen (0.9 Beta)](https://github.com/fly-to-gecko/dabs-to-xcsoar/releases/download/v0.9/dabs-xcsoar-0.9.apk) bzw. alle Versionen unter [Releases](https://github.com/fly-to-gecko/dabs-to-xcsoar/releases) aufs Handy laden, Installation
 aus unbekannten Quellen erlauben, in der App den Dateizugriff erlauben, Länder anhaken, „Alle neu laden“.
 Voraussetzung: Android 8 oder neuer, XCSoar mindestens einmal gestartet.
 

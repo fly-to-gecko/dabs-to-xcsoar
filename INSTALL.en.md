@@ -13,9 +13,13 @@ Installation takes about 5 minutes.
 
 ## 1. Download the APK
 
-1. On the phone, open in the browser (e.g. Chrome or Samsung Internet):
-   **https://github.com/fly-to-gecko/dabs-to-xcsoar/releases**
-2. In the top (latest) release, under **Assets**, tap **`dabs-xcsoar-<version>.apk`**.
+1. Open this guide **on your phone** and tap here:
+
+   ### 👉 [**Download the APK (version 0.9 beta)**](https://github.com/fly-to-gecko/dabs-to-xcsoar/releases/download/v0.9/dabs-xcsoar-0.9.apk)
+
+   The download starts right away. All versions and their changes are on the
+   [releases page](https://github.com/fly-to-gecko/dabs-to-xcsoar/releases) – tap `dabs-xcsoar-<version>.apk` under **Assets** there.
+2. If the browser asks whether to download the file: **Download**.
 3. If the browser warns "This type of file can harm your device": **Download anyway**.
 
 ## 2. Allow the installation
