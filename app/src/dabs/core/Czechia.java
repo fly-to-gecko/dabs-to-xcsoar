@@ -33,7 +33,7 @@ public final class Czechia {
 
     public static Country.Result fetch(LocalDate day, LocalGeometry local) throws Exception {
         Http h = new Http();
-        String index = h.get(INDEX);
+        String index = new String(h.conditional(INDEX), Http.UTF8);
         String aupUrl = null, uupUrl = null;
         String tag = day.format(DateTimeFormatter.ofPattern("ddMMyyyy"));
         Matcher m = LINK.matcher(index);
@@ -44,18 +44,18 @@ public final class Czechia {
         }
         if (aupUrl == null) aupUrl = INDEX + "data/ANG_" + tag + ".htm";
         Map<String, Row> rows = new LinkedHashMap<>();
-        for (Row r : parseRows(h.get(aupUrl))) rows.put(r.key(), r);
+        for (Row r : parseRows(new String(h.conditional(aupUrl), Http.UTF8))) rows.put(r.key(), r); // nur bei Änderung neu
         String stand = "AUP";
         List<String> cancelled = new ArrayList<>();
         if (uupUrl != null) { // UUP: Änderungen, CNL = storniert
             stand = "AUP + UUP";
-            for (Row r : parseRows(h.get(uupUrl))) {
+            for (Row r : parseRows(new String(h.conditional(uupUrl), Http.UTF8))) {
                 if (r.info != null && r.info.toUpperCase(Locale.ROOT).contains("CNL")) {
                     if (rows.remove(r.key()) != null) cancelled.add(r.area);
                 } else rows.put(r.key(), r);
             }
         }
-        String geo = new String(h.cached(GEOMETRY, Http.DAY_MS), Charset.forName("ISO-8859-1")); // Grenzen: 1x täglich
+        String geo = new String(h.conditional(GEOMETRY), Charset.forName("ISO-8859-1")); // Grenzen: nur bei Änderung
         Country.Result res = build(new ArrayList<>(rows.values()), indexOpenAir(geo), day, local);
         res.stand = stand;
         if (!cancelled.isEmpty()) res.report.add("Storniert (UUP): " + String.join(", ", cancelled));

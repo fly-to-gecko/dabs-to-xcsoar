@@ -93,6 +93,58 @@ public final class Json {
         return Double.valueOf(s.substring(st, i));
     }
 
+    /** Zurück in JSON-Text (für den NOTAM-Zwischenspeicher). */
+    public static String write(Object o) {
+        StringBuilder b = new StringBuilder();
+        write(o, b);
+        return b.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void write(Object o, StringBuilder b) {
+        if (o == null) b.append("null");
+        else if (o instanceof String) {
+            b.append('"');
+            for (char c : ((String) o).toCharArray()) {
+                switch (c) {
+                    case '"': b.append("\\\""); break;
+                    case '\\': b.append("\\\\"); break;
+                    case '\n': b.append("\\n"); break;
+                    case '\r': b.append("\\r"); break;
+                    case '\t': b.append("\\t"); break;
+                    default:
+                        if (c < 0x20) b.append(String.format("\\u%04x", (int) c));
+                        else b.append(c);
+                }
+            }
+            b.append('"');
+        } else if (o instanceof Double) {
+            double d = (Double) o;
+            if (d == Math.rint(d) && Math.abs(d) < 1e15) b.append((long) d); else b.append(d);
+        } else if (o instanceof Boolean) b.append(o);
+        else if (o instanceof Map) {
+            b.append('{');
+            boolean first = true;
+            for (Map.Entry<String, Object> e : ((Map<String, Object>) o).entrySet()) {
+                if (!first) b.append(',');
+                first = false;
+                write(e.getKey(), b);
+                b.append(':');
+                write(e.getValue(), b);
+            }
+            b.append('}');
+        } else if (o instanceof List) {
+            b.append('[');
+            boolean first = true;
+            for (Object x : (List<Object>) o) {
+                if (!first) b.append(',');
+                first = false;
+                write(x, b);
+            }
+            b.append(']');
+        } else b.append(o);
+    }
+
     // Helfer
     @SuppressWarnings("unchecked")
     public static Map<String, Object> obj(Object o) { return (Map<String, Object>) o; }

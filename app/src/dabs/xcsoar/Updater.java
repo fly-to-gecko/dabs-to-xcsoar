@@ -120,12 +120,14 @@ public final class Updater {
         State state = State.NEVER;
         int count;
         String time = "", stand = "", report = "", error = "", localFiles = "";
+        boolean daily; // nur 1x täglich (DE)
     }
 
     static Status status(Context c, Country k) {
         SharedPreferences p = prefs(c);
         Status s = new Status();
         if (!enabled(c, k)) { s.state = State.OFF; return s; }
+        s.daily = oncePerDay(k);
         String st = p.getString("st_" + k.name(), "never");
         s.count = p.getInt("cnt_" + k.name(), 0);
         s.time = p.getString("time_" + k.name(), "");
@@ -171,22 +173,56 @@ public final class Updater {
     /** Wurde in diesem App-Prozess schon automatisch geladen? (Prozess neu = App neu gestartet) */
     static boolean startedInThisProcess;
 
-    static void updateAll(Context ctx) {
+    /** Nach erfolgreichem Laden wird ein Land so lange nicht erneut abgefragt (schont die Server). */
+    static final long MIN_INTERVAL_MS = 15 * 60 * 1000L;
+
+    /** Deutschland: DFS-Portal höchstens einmal am Tag abfragen (bis die DFS automatisierten Abruf erlaubt). */
+    static boolean oncePerDay(Country k) { return k == Country.DE; }
+
+    /** Warum ein Land gerade nicht neu geladen wird – oder null, wenn es geladen werden darf. */
+    static String blockedReason(Context c, Country k) {
+        SharedPreferences p = prefs(c);
+        if (!"ok".equals(p.getString("st_" + k.name(), ""))) return null; // nach Fehler/nie: erlaubt
+        if (!today().equals(p.getString("okDay_" + k.name(), ""))) return null; // neuer Tag: erlaubt
+        if (oncePerDay(k)) return L.s("block_daily");
+        long next = p.getLong("okMs_" + k.name(), 0) + MIN_INTERVAL_MS;
+        if (System.currentTimeMillis() < next)
+            return L.s("block_until", new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new Date(next)));
+        return null;
+    }
+
+    /** Frühester Zeitpunkt (HH:mm), ab dem wieder ein Land geladen werden darf. */
+    static String nextAllowed(Context c) {
+        long min = Long.MAX_VALUE;
+        for (Country k : Country.values())
+            if (enabled(c, k) && !oncePerDay(k)) min = Math.min(min, prefs(c).getLong("okMs_" + k.name(), 0) + MIN_INTERVAL_MS);
+        if (min == Long.MAX_VALUE) return "–";
+        return new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new Date(min));
+    }
+
+    /** @return Anzahl der Länder, die wirklich geladen werden */
+    static int updateAll(Context ctx) {
         startedInThisProcess = true;
         Context c = ctx.getApplicationContext();
         prefs(c).edit().putString("lastRunDay", today()).apply();
         dabs.core.Http.cacheDir = new File(c.getCacheDir(), "http");
         synchronized (Updater.class) { local = null; }
+        int started = 0;
         for (Country k : Country.values()) {
-            if (enabled(c, k)) update(c, k);
+            if (enabled(c, k)) { if (update(c, k)) started++; }
             else removeFiles(c, k);
         }
+        return started;
     }
 
     /** Ein Land neu laden. */
-    static void update(Context ctx, Country k) {
+    static boolean update(Context ctx, Country k) {
         Context c = ctx.getApplicationContext();
-        if (!RUNNING.add(k)) return; // läuft schon
+        if (blockedReason(c, k) != null) { // eben erst geladen bzw. DE schon heute
+            restoreFiles(c, k); // fehlende Dateien (wieder angehakt) aus dem letzten Stand – ohne Server
+            return false;
+        }
+        if (!RUNNING.add(k)) return false; // läuft schon
         dabs.core.Http.cacheDir = new File(c.getCacheDir(), "http");
         prefs(c).edit().putString("st_" + k.name(), "run").putInt("pid_" + k.name(), android.os.Process.myPid()).apply();
         notifyUi();
@@ -200,8 +236,11 @@ public final class Updater {
                 LocalGeometry lg = k.usesLocalGeometry() ? localGeometry(c) : null;
                 Country.Result r = k.fetch(Country.today(), lg);
                 for (Install i : targets) Country.write(new File(i.target(), k.fileName), r.text);
+                Country.write(lastFile(c, k), r.text); // letzter Stand, falls Dateien neu geschrieben werden müssen
                 if (r.pdf != null) savePdf(c, r.pdf);
                 e.putString("st_" + k.name(), "ok")
+                        .putString("okDay_" + k.name(), today())
+                        .putLong("okMs_" + k.name(), System.currentTimeMillis())
                         .putInt("cnt_" + k.name(), r.count)
                         .putString("time_" + k.name(), now)
                         .putString("stand_" + k.name(), r.stand == null ? "" : r.stand)
@@ -217,6 +256,7 @@ public final class Updater {
             RUNNING.remove(k);
             notifyUi();
         });
+        return true;
     }
 
     /** Eingebundene Luftraumdateien nur einmal pro Durchlauf lesen (CH, CZ, AT, FR teilen sich das). */
@@ -234,10 +274,29 @@ public final class Updater {
         return String.join(", ", n);
     }
 
+    static File lastFile(Context c, Country k) {
+        return new File(new File(c.getFilesDir(), "last"), k.fileName);
+    }
+
+    /** Fehlende Dateien in den gewählten Installationen aus dem letzten erfolgreichen Stand ergänzen. */
+    static void restoreFiles(Context c, Country k) {
+        File last = lastFile(c, k);
+        if (!last.isFile()) return;
+        try {
+            String text = new String(java.nio.file.Files.readAllBytes(last.toPath()), "UTF-8");
+            for (Install i : activeInstalls(c)) {
+                File f = new File(i.target(), k.fileName);
+                if (!f.isFile()) Country.write(f, text);
+            }
+        } catch (Exception ignored) {
+            // nicht kritisch
+        }
+    }
+
     /** Abgewählt: Datei in allen Installationen entfernen, damit XCSoar keine veralteten Gebiete zeigt. */
     static void removeFiles(Context c, Country k) {
         for (Install i : installs()) if (i.exists()) new File(i.target(), k.fileName).delete();
-        prefs(c).edit().putString("st_" + k.name(), "off").apply();
+        // Status bewusst NICHT ändern: sonst würde die Tages-/15-Minuten-Sperre beim Wiedereinschalten umgangen
     }
 
     /** Installation abgewählt: eigene Dateien dort entfernen. */

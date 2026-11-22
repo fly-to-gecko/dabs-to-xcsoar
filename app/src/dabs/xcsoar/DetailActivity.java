@@ -71,11 +71,19 @@ public class DetailActivity extends Activity implements Updater.Listener {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.leftMargin = ui.dp(10);
             again.setLayoutParams(lp);
-            again.setEnabled(s.state != Updater.State.RUNNING);
+            String blocked = Updater.blockedReason(this, k);
+            again.setEnabled(s.state != Updater.State.RUNNING && blocked == null);
+            if (blocked != null) again.setAlpha(0.5f);
             again.setOnClickListener(v -> { Updater.update(this, k); changed(); });
             btns.addView(again);
         }
         body.addView(btns);
+        String why = Updater.blockedReason(this, k);
+        if (why != null && s.state == Updater.State.OK) {
+            TextView w = ui.text(why, 13, ui.sub, false);
+            w.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), 0);
+            body.addView(w);
+        }
 
         // Fehler
         if (s.state == Updater.State.ERROR && !s.error.isEmpty()) {
@@ -92,6 +100,7 @@ public class DetailActivity extends Activity implements Updater.Listener {
         info.addView(kv(L.s("k_source"), k.source));
         info.addView(kv(L.s("k_file"), k.fileName));
         if (!s.stand.isEmpty()) info.addView(kv(L.s("k_stand"), L.core(s.stand)));
+        if (k == Country.CH) info.addView(kv(L.s("k_next_dabs"), L.s("next_dabs")));
         if (k.usesLocalGeometry()) info.addView(kv(L.s("k_local"),
                 s.localFiles.isEmpty() ? L.s("no_local") : s.localFiles));
         body.addView(info);

@@ -48,9 +48,20 @@ Hinweise:
 
 Die App läuft **nicht im Hintergrund**. Geladen wird automatisch nur beim **Start der App** und an
 einem **neuen Tag** – nicht beim Entsperren oder Zurückwechseln (dafür gibt es den großen Knopf).
-Das schont die Server der Flugsicherungen. Selten geänderte Daten (SHV-Gebietsgrenzen, tschechische
-Geometriedatei) werden höchstens einmal täglich geladen und zwischengespeichert; die tagesaktuellen
-Daten (DABS, AUP, NOTAM) werden jedes Mal frisch geholt.
+### Rücksicht auf die Server
+
+Die App fragt so wenig wie möglich an:
+
+- **Sperrzeit:** Nach erfolgreichem Laden wird ein Land 15 Minuten lang nicht erneut abgefragt
+  (der Knopf meldet dann „Alle Daten aktuell – neu laden ab …“).
+- **Deutschland höchstens einmal am Tag:** Die [Nutzungsbedingungen des DFS AIS-Portals](https://ais.dfs.de/pilotservice/service/information/disclaimer/disclaimer.jsp)
+  untersagen den automatisierten Abruf ohne schriftliche Zustimmung der DFS. Eine Anfrage bei der DFS
+  läuft; bis dahin ist der Abruf auf einmal täglich begrenzt. Das Modul kann je nach Antwort entfallen.
+- **Nur Änderungen:** Tschechien wird per ETag abgefragt (Server antwortet „nicht geändert“), der
+  NOTAM-Dienst im Delta-Modus (nur neue/geänderte NOTAMs, z. B. 2 KB statt 325 KB).
+- **Selten geänderte Grenzdaten** (SHV) höchstens einmal täglich, mit Offline-Rückfall auf den letzten Stand.
+- Wird ein Land wieder eingeschaltet oder eine XCSoar-Version neu gewählt, schreibt die App den letzten
+  Stand ohne neue Anfrage.
 
 **Sprachen:** Deutsch, Englisch, Französisch – standardmäßig die Systemsprache, umstellbar unter
 ⚙ → Sprache. Auch der Hinweis „Grenzen aus …“ in den Gebietsnamen folgt der Sprache.

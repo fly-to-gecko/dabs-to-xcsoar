@@ -119,6 +119,20 @@ final class L {
                 "No XCSoar installation found or selected (settings). Start XCSoar once?",
                 "Aucune installation XCSoar trouvée ou choisie (réglages). Lancer XCSoar une fois ?");
 
+        t("st_daily", "1× täglich", "once a day", "1× par jour");
+        t("block_daily", "Deutschland wird höchstens einmal am Tag geladen (Rücksicht auf die DFS) – heute bereits erledigt.",
+                "Germany is loaded at most once a day (out of respect for DFS) – already done today.",
+                "L'Allemagne n'est chargée qu'une fois par jour (par égard pour la DFS) – déjà fait aujourd'hui.");
+        t("block_until", "Gerade erst geladen – erneut möglich ab %s (schont die Server).",
+                "Just loaded – next reload possible from %s (to spare the servers).",
+                "Chargé à l'instant – nouveau chargement possible à partir de %s (pour ménager les serveurs).");
+        t("toast_all_current", "Alle Daten aktuell – neu laden ab %s", "All data current – reload from %s",
+                "Données à jour – recharger à partir de %s");
+        t("k_next_dabs", "Nächstes DABS", "Next DABS", "Prochain DABS");
+        t("next_dabs", "Das DABS für morgen erscheint ab ca. 16:00 Uhr (Schweizer Zeit); im Lauf des Tages kann es neue Versionen geben.",
+                "Tomorrow's DABS is published from about 16:00 (Swiss time); new versions may appear during the day.",
+                "Le DABS du lendemain paraît vers 16h00 (heure suisse) ; de nouvelles versions peuvent paraître dans la journée.");
+
         // --- Details
         t("open_dabs_pdf", "Original-DABS (PDF)", "Original DABS (PDF)", "DABS original (PDF)");
         t("open_source", "Originalquelle öffnen", "Open original source", "Ouvrir la source");

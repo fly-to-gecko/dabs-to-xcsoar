@@ -120,7 +120,8 @@ public class MainActivity extends Activity implements Updater.Listener {
             Toast.makeText(this, L.s("toast_storage_first"), Toast.LENGTH_SHORT).show();
             return;
         }
-        Updater.updateAll(this);
+        if (Updater.updateAll(this) == 0 && !Updater.anyRunning())
+            Toast.makeText(this, L.s("toast_all_current", Updater.nextAllowed(this)), Toast.LENGTH_LONG).show();
         changed();
     }
 
@@ -192,6 +193,7 @@ public class MainActivity extends Activity implements Updater.Listener {
             case OK: {
                 String t = L.s(s.count == 1 ? "st_areas1" : "st_areas", s.count) + " · " + Updater.when(s.time);
                 if (s.report.contains("Grenzen aus")) t += " · " + L.s("st_with_local");
+                if (s.daily) t += " · " + L.s("st_daily");
                 return t;
             }
             case ERROR: return L.s("st_error");

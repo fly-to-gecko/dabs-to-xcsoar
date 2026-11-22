@@ -39,19 +39,18 @@ public final class Notams {
     public static Country.Result fetch(double[][] centers, String[] firs, LocalDate day, LocalGeometry local) throws Exception {
         // Abfragen gleichzeitig (der Dienst braucht ca. 5 s je Abfrage; FR hat 16 Punkte)
         java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(Math.min(8, centers.length));
-        List<java.util.concurrent.Future<String>> jobs = new ArrayList<>();
+        List<java.util.concurrent.Future<List<Object>>> jobs = new ArrayList<>();
         for (double[] c : centers) {
             String url = String.format(Locale.ROOT, "%s?lat=%.2f&lon=%.2f&radius=100", API, c[0], c[1]);
-            jobs.add(pool.submit(() -> new Http().get(url)));
+            jobs.add(pool.submit(() -> items(url)));
         }
         pool.shutdown();
         Set<String> seen = new HashSet<>();   // NOTAM-IDs und -Nummern (Duplikate aus mehreren Abfragen)
         List<Map<String, Object>> items = new ArrayList<>();
         int failed = 0;
-        for (java.util.concurrent.Future<String> f : jobs) {   // Reihenfolge bleibt wie die Punkte
+        for (java.util.concurrent.Future<List<Object>> f : jobs) {   // Reihenfolge bleibt wie die Punkte
             try {
-                String json = f.get(60, java.util.concurrent.TimeUnit.SECONDS);
-                for (Object o : Json.arr(Json.obj(Json.parse(json)).get("items"))) {
+                for (Object o : f.get(60, java.util.concurrent.TimeUnit.SECONDS)) {
                     Map<String, Object> it = Json.obj(o);
                     Map<String, Object> n = notam(it);
                     if (n == null) continue;
@@ -66,6 +65,67 @@ public final class Notams {
         Country.Result r = build(items, firs, day, local);
         if (failed > 0) r.report.add(0, "⚠ " + failed + " von " + centers.length + " NOTAM-Abfragen fehlgeschlagen");
         return r;
+    }
+
+    /** Zähler für Tests/Anzeige: Abfragen im Delta-Modus bzw. komplett */
+    public static int deltaCount, fullCount;
+
+    /**
+     * NOTAMs eines Abfragepunkts. Mit Zwischenspeicher wird der Delta-Modus des Dienstes genutzt:
+     * die App schickt die bekannten NOTAM-IDs und bekommt nur neue/geänderte zurück (z. B. 2 KB statt 325 KB).
+     */
+    static List<Object> items(String url) throws Exception {
+        java.io.File f = Http.cacheDir == null ? null
+                : new java.io.File(Http.cacheDir, "notam_" + Integer.toHexString(url.hashCode()) + ".json");
+        if (f != null && f.isFile() && System.currentTimeMillis() - f.lastModified() < 2 * Http.DAY_MS) {
+            try {
+                List<Object> cached = Json.arr(Json.obj(Json.parse(new String(java.nio.file.Files.readAllBytes(f.toPath()), Http.UTF8))).get("items"));
+                Map<String, Object> known = new java.util.LinkedHashMap<>();
+                for (Object o : cached) {
+                    Map<String, Object> n = notam(Json.obj(o));
+                    if (n != null) known.put(String.valueOf(n.get("id")), n.get("lastUpdated"));
+                }
+                Map<String, Object> body = new java.util.LinkedHashMap<>();
+                body.put("known", known);
+                Map<String, Object> d = Json.obj(Json.parse(new Http().postJson(url, Json.write(body))));
+                if (Boolean.TRUE.equals(d.get("delta"))) {
+                    Set<String> gone = new HashSet<>();
+                    for (Object id : Json.arr(d.get("removedIds"))) gone.add(String.valueOf(id));
+                    Map<String, Object> byId = new java.util.LinkedHashMap<>();
+                    for (Object o : cached) {
+                        Map<String, Object> n = notam(Json.obj(o));
+                        if (n != null && !gone.contains(String.valueOf(n.get("id")))) byId.put(String.valueOf(n.get("id")), o);
+                    }
+                    for (Object o : Json.arr(d.get("items"))) {
+                        Map<String, Object> n = notam(Json.obj(o));
+                        if (n != null) byId.put(String.valueOf(n.get("id")), o);
+                    }
+                    List<Object> merged = new ArrayList<>(byId.values());
+                    save(f, merged);
+                    deltaCount++;
+                    return merged;
+                }
+            } catch (Exception ignored) {
+                // Delta nicht möglich -> komplett laden
+            }
+        }
+        List<Object> all = Json.arr(Json.obj(Json.parse(new Http().get(url))).get("items"));
+        if (f != null) save(f, all);
+        fullCount++;
+        return all;
+    }
+
+    private static void save(java.io.File f, List<Object> items) {
+        try {
+            f.getParentFile().mkdirs();
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("items", items);
+            java.io.File tmp = new java.io.File(f.getPath() + ".tmp");
+            java.nio.file.Files.write(tmp.toPath(), Json.write(m).getBytes(Http.UTF8));
+            if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+        } catch (Exception ignored) {
+            // Zwischenspeicher ist optional
+        }
     }
 
     static Map<String, Object> notam(Map<String, Object> item) {
