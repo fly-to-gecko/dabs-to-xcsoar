@@ -44,10 +44,13 @@ Hinweise:
   steht, wird der **ungefähre** Kreis gezeichnet; fehlt nur ein Teil, bekommt dieser zusätzlich den Kreis.
 - Gibt es heute keine Aktivierung, enthält die Datei einen winzigen Platzhalter bei 0°N 0°E,
   weil XCSoar leere OpenAir-Dateien ablehnt.
-- Abgewählte Länder: die App löscht deren Datei, damit keine veralteten Gebiete angezeigt werden.
+- Abgewählte Länder: die App leert deren Datei (Rahmen mit unsichtbarem Platzhalter bleibt), damit
+  XCSoar keine veralteten Gebiete zeigt, aber auch keinen Fehler meldet.
 
 Die App läuft **nicht im Hintergrund** und lädt **nicht automatisch** – auch nicht beim Start.
 Die Daten bleiben auf dem letzten Stand, bis du aktiv lädst (großer Knopf unten oder ⟳ oben).
+Geladen werden dabei nur Länder, die noch nicht aktuell sind – wird z. B. mittags Österreich dazu
+gewählt, zeigt der Knopf „⟳ Laden: Österreich“ und lädt nur dieses Land.
 Länder, deren Stand nicht von heute ist, zeigen eine **orange Ampel** („veraltet“). Sind alle gewählten
 Länder heute geladen, ersetzt der Hinweis **„Letztes Daten-Update: heute HH:MM (Lokalzeit)“** den Knopf.
 

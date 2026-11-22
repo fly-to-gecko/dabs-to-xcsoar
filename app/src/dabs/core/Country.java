@@ -90,9 +90,18 @@ public enum Country {
      */
     static String ensureNotEmpty(String text) {
         if (text.startsWith("AC ") || text.contains("\nAC ")) return text;
-        return text + "* Heute keine Aktivierungen. Platzhalter, damit XCSoar die Datei akzeptiert:\n"
-                + "AC G\nAN Platzhalter - keine Aktivierungen\nAL GND\nAH 1ft AGL\n"
+        return text + "* Keine Lufträume. Unsichtbarer Platzhalter (0N 0E), damit XCSoar die Datei akzeptiert:\n"
+                + "AC G\nAN Platzhalter - keine Luftraeume\nAL GND\nAH 1ft AGL\n"
                 + "V X=00:00:00 N 000:00:00 E\nDC 0.01\n";
+    }
+
+    /**
+     * Leere Datei mit Rahmen für ein abgewähltes Land: keine Lufträume, aber gültiges OpenAir,
+     * damit XCSoar beim Start keinen Fehler meldet, wenn die Datei im Profil eingetragen ist.
+     */
+    public String emptyFrame() {
+        return "* Aktive Militaer-/Sperrgebiete " + label + " fuer XCSoar (DABS-App)\n"
+                + "* Land in der DABS-App abgewaehlt - Datei absichtlich ohne Lufttraeume.\n\n";
     }
 
     /** Atomar schreiben (tmp + rename). */

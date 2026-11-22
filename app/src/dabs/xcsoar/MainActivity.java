@@ -157,7 +157,14 @@ public class MainActivity extends Activity implements Updater.Listener {
             reloadBtn.setText(L.s("loading_progress", done, on));
             reloadBtn.setAlpha(0.7f);
         } else {
-            reloadBtn.setText(L.s("reload_all"));
+            // nur die fehlenden Länder nennen, z. B. "⟳ Laden: Österreich"
+            java.util.List<Country> p = Updater.pending(this);
+            if (p.isEmpty() || p.size() == on) reloadBtn.setText(L.s("reload_all"));
+            else {
+                java.util.List<String> names = new java.util.ArrayList<>();
+                for (Country k : p) names.add(L.country(k));
+                reloadBtn.setText(L.s("load_some", String.join(", ", names)));
+            }
             reloadBtn.setAlpha(1f);
         }
     }

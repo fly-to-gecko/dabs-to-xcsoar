@@ -193,6 +193,14 @@ public final class Updater {
         return null;
     }
 
+    /** Gewählte Länder, die noch nicht aktuell sind (für die Knopf-Beschriftung). */
+    static List<Country> pending(Context c) {
+        List<Country> out = new ArrayList<>();
+        for (Country k : Country.values())
+            if (enabled(c, k) && status(c, k).state != State.OK && !running(k)) out.add(k);
+        return out;
+    }
+
     /** Sind alle gewählten Länder heute erfolgreich geladen? (dann statt Knopf der Hinweis) */
     static boolean allCurrent(Context c) {
         boolean any = false;
@@ -245,8 +253,10 @@ public final class Updater {
         synchronized (Updater.class) { local = null; }
         int started = 0;
         for (Country k : Country.values()) {
-            if (enabled(c, k)) { if (update(c, k, force)) started++; }
-            else removeFiles(c, k);
+            if (!enabled(c, k)) { removeFiles(c, k); continue; }
+            // normal: nur Länder laden, die nicht schon heute aktuell sind (z. B. neu angehakt)
+            if (!force && status(c, k).state == State.OK) continue;
+            if (update(c, k, force)) started++;
         }
         return started;
     }
@@ -325,24 +335,33 @@ public final class Updater {
         try {
             String text = new String(java.nio.file.Files.readAllBytes(last.toPath()), "UTF-8");
             for (Install i : activeInstalls(c)) {
-                File f = new File(i.target(), k.fileName);
-                if (!f.isFile()) Country.write(f, text);
+                Country.write(new File(i.target(), k.fileName), text); // ersetzt auch die leere Datei
             }
         } catch (Exception ignored) {
             // nicht kritisch
         }
     }
 
-    /** Abgewählt: Datei in allen Installationen entfernen, damit XCSoar keine veralteten Gebiete zeigt. */
+    /** Abgewählt: Lufträume aus der Datei entfernen (leerer Rahmen bleibt), damit XCSoar nichts Veraltetes zeigt. */
     static void removeFiles(Context c, Country k) {
-        for (Install i : installs()) if (i.exists()) new File(i.target(), k.fileName).delete();
+        for (Install i : installs()) if (i.exists()) emptyIfPresent(new File(i.target(), k.fileName), k);
         // Status bewusst NICHT ändern: sonst würde die Tages-/15-Minuten-Sperre beim Wiedereinschalten umgangen
     }
 
-    /** Installation abgewählt: eigene Dateien dort entfernen. */
+    /** Installation abgewählt: eigene Dateien dort leeren (Rahmen bleibt). */
     static void removeAllFiles(Install i) {
         if (!i.exists()) return;
-        for (Country k : Country.values()) new File(i.target(), k.fileName).delete();
+        for (Country k : Country.values()) emptyIfPresent(new File(i.target(), k.fileName), k);
+    }
+
+    /** Vorhandene Datei leeren (Rahmen bleibt); nicht vorhandene nicht neu anlegen. */
+    private static void emptyIfPresent(File f, Country k) {
+        if (!f.isFile()) return;
+        try {
+            Country.write(f, k.emptyFrame());
+        } catch (Exception ignored) {
+            // nicht kritisch
+        }
     }
 
     static File pdfFile(Context c) {
