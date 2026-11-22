@@ -3,8 +3,11 @@ package dabs.xcsoar;
 import android.app.job.JobScheduler;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,46 +17,89 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import dabs.core.Country;
 import dabs.core.LocalGeometry;
 
-/** XCSoar-Ordner finden, Länder laden, Dateien schreiben, Status merken.
- *  Aktualisiert wird nur, wenn die App geöffnet wird – keine Hintergrund-Jobs. */
+/**
+ * Lädt die Länder parallel, schreibt die Dateien in die gewählten XCSoar-Installationen und
+ * merkt sich je Land den Status (lädt / ok / Fehler). Die Oberfläche wird per Listener benachrichtigt.
+ * Aktualisiert wird nur, wenn die App geöffnet wird – keine Hintergrund-Jobs.
+ */
 public final class Updater {
 
-    /** Datenordner aller bekannten XCSoar-Varianten (Play, F-Droid/FOSS, Testing, OpenSoar, alt). */
-    static File[] candidates() {
+    // --- XCSoar-Installationen --------------------------------------------
+
+    /** Eine mögliche XCSoar-Installation (Paket + Datenordner). */
+    static final class Install {
+        final String pkg, label;
+        final File dataDir;
+
+        Install(String pkg, String label, File dataDir) {
+            this.pkg = pkg;
+            this.label = label;
+            this.dataDir = dataDir;
+        }
+
+        boolean exists() { return dataDir.isDirectory(); }
+
+        /** Zielordner: "airspace"-Unterordner (XCSoar 7.45+) oder der Datenordner selbst. */
+        File target() {
+            File asp = new File(dataDir, "airspace");
+            return asp.isDirectory() ? asp : dataDir;
+        }
+
+        String key() { return "inst_" + (pkg != null ? pkg : "legacy"); }
+    }
+
+    static List<Install> installs() {
         File root = Environment.getExternalStorageDirectory();
-        return new File[]{
-                new File(root, "Android/media/org.xcsoar.foss"),
-                new File(root, "Android/media/org.xcsoar"),
-                new File(root, "Android/media/org.xcsoar.testing"),
-                new File(root, "Android/media/de.opensoar"),
-                new File(root, "XCSoarData"),
-        };
+        List<Install> l = new ArrayList<>();
+        l.add(new Install("org.xcsoar.foss", "XCSoar (F-Droid/FOSS)", new File(root, "Android/media/org.xcsoar.foss")));
+        l.add(new Install("org.xcsoar", "XCSoar", new File(root, "Android/media/org.xcsoar")));
+        l.add(new Install("org.xcsoar.testing", "XCSoar Testing", new File(root, "Android/media/org.xcsoar.testing")));
+        l.add(new Install("de.opensoar", "OpenSoar", new File(root, "Android/media/de.opensoar")));
+        l.add(new Install(null, "XCSoar (alter Ordner XCSoarData)", new File(root, "XCSoarData")));
+        return l;
     }
 
-    /** Zielordner je Installation: "airspace"-Unterordner (XCSoar 7.45+) oder der Datenordner selbst. */
-    static List<File> targetDirs() {
-        List<File> out = new ArrayList<>();
-        for (File d : candidates()) {
-            if (!d.isDirectory()) continue;
-            File asp = new File(d, "airspace");
-            out.add(asp.isDirectory() ? asp : d);
+    /** Versionsname der installierten App, z.B. "7.45.1", oder null. */
+    static String version(Context c, Install i) {
+        if (i.pkg == null) return null;
+        try {
+            PackageInfo p = c.getPackageManager().getPackageInfo(i.pkg, 0);
+            return p.versionName;
+        } catch (Exception e) {
+            return null;
         }
+    }
+
+    static boolean installEnabled(Context c, Install i) {
+        return prefs(c).getBoolean(i.key(), true);
+    }
+
+    static void setInstallEnabled(Context c, Install i, boolean on) {
+        prefs(c).edit().putBoolean(i.key(), on).apply();
+    }
+
+    /** Gewählte, vorhandene Installationen. */
+    static List<Install> activeInstalls(Context c) {
+        List<Install> out = new ArrayList<>();
+        for (Install i : installs()) if (i.exists() && installEnabled(c, i)) out.add(i);
         return out;
     }
 
-    /** Luftraumdateien, die im aktiven Profil der jeweiligen XCSoar-Installation eingebunden sind. */
-    static List<File> configuredAirspaceFiles() {
+    /** Luftraumdateien, die im aktiven Profil der gewählten Installationen eingebunden sind. */
+    static List<File> configuredAirspaceFiles(Context c) {
         List<File> out = new ArrayList<>();
-        for (File d : candidates()) {
-            if (!d.isDirectory()) continue;
-            for (File f : dabs.core.XcsoarProfile.read(d).files) if (!out.contains(f)) out.add(f);
-        }
+        for (Install i : activeInstalls(c))
+            for (File f : dabs.core.XcsoarProfile.read(i.dataDir).files) if (!out.contains(f)) out.add(f);
         return out;
     }
+
+    // --- Einstellungen & Status -------------------------------------------
 
     static SharedPreferences prefs(Context c) {
         return c.getSharedPreferences("status", Context.MODE_PRIVATE);
@@ -67,54 +113,134 @@ public final class Updater {
         prefs(c).edit().putBoolean("on_" + k.name(), on).apply();
     }
 
-    static File pdfFile(Context c) {
-        return new File(c.getCacheDir(), "dabs.pdf");
+    enum State { OFF, RUNNING, OK, ERROR, INTERRUPTED, NEVER }
+
+    /** Gespeicherter Status eines Landes. */
+    static final class Status {
+        State state = State.NEVER;
+        int count;
+        String time = "", stand = "", report = "", error = "", localFiles = "";
     }
 
-    /** Läuft im Hintergrund-Thread. Gibt den Statustext zurück. */
-    static String runUpdate(Context c) {
-        String now = new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY).format(new Date());
-        StringBuilder b = new StringBuilder();
-        List<File> dirs = targetDirs();
-        if (dirs.isEmpty()) {
-            String msg = "FEHLER " + now + ": XCSoar-Datenordner nicht gefunden. XCSoar einmal starten?";
-            prefs(c).edit().putString("last", msg).apply();
-            return msg;
+    static Status status(Context c, Country k) {
+        SharedPreferences p = prefs(c);
+        Status s = new Status();
+        if (!enabled(c, k)) { s.state = State.OFF; return s; }
+        String st = p.getString("st_" + k.name(), "never");
+        s.count = p.getInt("cnt_" + k.name(), 0);
+        s.time = p.getString("time_" + k.name(), "");
+        s.stand = p.getString("stand_" + k.name(), "");
+        s.report = p.getString("rep_" + k.name(), "");
+        s.error = p.getString("err_" + k.name(), "");
+        s.localFiles = p.getString("local_" + k.name(), "");
+        switch (st) {
+            case "ok": s.state = State.OK; break;
+            case "err": s.state = State.ERROR; break;
+            case "run":
+                // läuft nur, wenn es dieser Prozess gerade tut – sonst wurde die App beendet
+                boolean mine = p.getInt("pid_" + k.name(), -1) == android.os.Process.myPid() && running(k);
+                s.state = mine ? State.RUNNING : State.INTERRUPTED;
+                break;
+            default: s.state = State.NEVER;
         }
-        LocalDate day = Country.today();
-        LocalGeometry local = null;
+        return s;
+    }
+
+    // --- Laden ---------------------------------------------------------------
+
+    interface Listener { void changed(); }
+
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(Country.values().length);
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final java.util.Set<Country> RUNNING = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    private static Listener listener;
+    private static LocalGeometry local;      // pro Durchlauf einmal gelesen
+    private static List<File> localList = new ArrayList<>();
+
+    static void setListener(Listener l) { listener = l; }
+
+    static boolean running(Country k) { return RUNNING.contains(k); }
+
+    static boolean anyRunning() { return !RUNNING.isEmpty(); }
+
+    private static void notifyUi() {
+        MAIN.post(() -> { if (listener != null) listener.changed(); });
+    }
+
+    /** Alle gewählten Länder neu laden (parallel); abgewählte: eigene Dateien entfernen. */
+    static void updateAll(Context ctx) {
+        Context c = ctx.getApplicationContext();
+        synchronized (Updater.class) { local = null; }
         for (Country k : Country.values()) {
-            if (enabled(c, k) && k.usesLocalGeometry() && local == null) {
-                List<File> conf = configuredAirspaceFiles();
-                local = LocalGeometry.scanFiles(conf);
-                b.append("Ersatz-Grenzen (nur wenn die Quelle keine hat) aus den in XCSoar eingebundenen Dateien:\n");
-                if (conf.isEmpty()) b.append("  (keine)\n");
-                for (File f : conf) b.append("  ").append(f.getName()).append('\n');
-                b.append('\n');
-            }
-            if (!enabled(c, k)) {
-                // abgewählt: eigene Datei entfernen, damit XCSoar keine veralteten Gebiete zeigt
-                if (k != Country.CH) for (File d : dirs) new File(d, k.fileName).delete();
-                continue;
-            }
-            b.append("■ ").append(k.label).append(" → ").append(k.fileName).append('\n');
-            try {
-                Country.Result r = k.fetch(day, local);
-                for (File d : dirs) Country.write(new File(d, k.fileName), r.text);
-                if (r.pdf != null) savePdf(c, r.pdf);
-                b.append("OK ").append(now).append(": ").append(r.count).append(" Gebiete. ").append(r.stand).append('\n');
-                for (String line : r.report) b.append("  ").append(line).append('\n');
-            } catch (Throwable t) {
-                b.append("FEHLER ").append(now).append(": ").append(t.getMessage()).append('\n');
-                b.append("  (alte Datei bleibt – Datum im Gebietsnamen prüfen)\n");
-            }
-            b.append('\n');
+            if (enabled(c, k)) update(c, k);
+            else removeFiles(c, k);
         }
-        b.append("Ordner:\n");
-        for (File d : dirs) b.append("  ").append(d).append('\n');
-        String msg = b.toString();
-        prefs(c).edit().putString("last", msg).apply();
-        return msg;
+    }
+
+    /** Ein Land neu laden. */
+    static void update(Context ctx, Country k) {
+        Context c = ctx.getApplicationContext();
+        if (!RUNNING.add(k)) return; // läuft schon
+        prefs(c).edit().putString("st_" + k.name(), "run").putInt("pid_" + k.name(), android.os.Process.myPid()).apply();
+        notifyUi();
+        POOL.execute(() -> {
+            String now = new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY).format(new Date());
+            SharedPreferences.Editor e = prefs(c).edit();
+            try {
+                List<Install> targets = activeInstalls(c);
+                if (targets.isEmpty())
+                    throw new Exception("Keine XCSoar-Installation gefunden bzw. gewählt (Einstellungen). XCSoar einmal starten?");
+                LocalGeometry lg = k.usesLocalGeometry() ? localGeometry(c) : null;
+                Country.Result r = k.fetch(Country.today(), lg);
+                for (Install i : targets) Country.write(new File(i.target(), k.fileName), r.text);
+                if (r.pdf != null) savePdf(c, r.pdf);
+                e.putString("st_" + k.name(), "ok")
+                        .putInt("cnt_" + k.name(), r.count)
+                        .putString("time_" + k.name(), now)
+                        .putString("stand_" + k.name(), r.stand == null ? "" : r.stand)
+                        .putString("rep_" + k.name(), String.join("\n", r.report))
+                        .putString("err_" + k.name(), "")
+                        .putString("local_" + k.name(), lg == null ? "" : names(localList));
+            } catch (Throwable t) {
+                e.putString("st_" + k.name(), "err")
+                        .putString("time_" + k.name(), now)
+                        .putString("err_" + k.name(), t.getMessage() != null ? t.getMessage() : t.toString());
+            }
+            e.apply();
+            RUNNING.remove(k);
+            notifyUi();
+        });
+    }
+
+    /** Eingebundene Luftraumdateien nur einmal pro Durchlauf lesen (CH, CZ, AT, FR teilen sich das). */
+    private static synchronized LocalGeometry localGeometry(Context c) {
+        if (local == null) {
+            localList = configuredAirspaceFiles(c);
+            local = LocalGeometry.scanFiles(localList);
+        }
+        return local;
+    }
+
+    private static String names(List<File> fs) {
+        List<String> n = new ArrayList<>();
+        for (File f : fs) if (!n.contains(f.getName())) n.add(f.getName());
+        return String.join(", ", n);
+    }
+
+    /** Abgewählt: Datei in allen Installationen entfernen, damit XCSoar keine veralteten Gebiete zeigt. */
+    static void removeFiles(Context c, Country k) {
+        for (Install i : installs()) if (i.exists()) new File(i.target(), k.fileName).delete();
+        prefs(c).edit().putString("st_" + k.name(), "off").apply();
+    }
+
+    /** Installation abgewählt: eigene Dateien dort entfernen. */
+    static void removeAllFiles(Install i) {
+        if (!i.exists()) return;
+        for (Country k : Country.values()) new File(i.target(), k.fileName).delete();
+    }
+
+    static File pdfFile(Context c) {
+        return new File(c.getCacheDir(), "dabs.pdf");
     }
 
     static void savePdf(Context c, byte[] pdf) {
@@ -135,5 +261,17 @@ public final class Updater {
         if (Build.VERSION.SDK_INT >= 30) return Environment.isExternalStorageManager();
         return c.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** "22.11. 11:21" -> "heute 11:21" bzw. "21.11. 18:05" */
+    static String when(String stored) {
+        if (stored == null || stored.length() < 7) return stored == null ? "" : stored;
+        String today = new SimpleDateFormat("dd.MM.", Locale.GERMANY).format(new Date());
+        return stored.startsWith(today) ? "heute " + stored.substring(7).trim() : stored;
+    }
+
+    static String today() {
+        LocalDate d = Country.today();
+        return String.format(Locale.GERMANY, "%02d.%02d.%d", d.getDayOfMonth(), d.getMonthValue(), d.getYear());
     }
 }

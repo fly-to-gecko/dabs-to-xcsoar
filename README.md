@@ -48,6 +48,16 @@ Hinweise:
 
 Die App läuft **nicht im Hintergrund**: Daten werden nur geholt, wenn du sie öffnest.
 
+## Bedienung
+
+- **Startseite:** je Land ein Häkchen (an/aus), eine **Ampel** und ein Knopf zur **Originalquelle**
+  (Schweiz: genau das ausgewertete DABS-PDF). Ampel: drehend = lädt, grün ✓ = fertig (Anzahl Gebiete,
+  Uhrzeit), rot ✕ = Fehler, orange ! = abgebrochen. Die Länder laden gleichzeitig.
+- **Antippen eines Landes:** Details – Stand, Gebietsliste mit Zeiten und Höhen, Fehlermeldung,
+  Herkunft der Grenzen, „Neu laden“.
+- **⟳** lädt alles neu, **⚙** öffnet die Einstellungen: Programmhinweise, welche XCSoar-Installationen
+  beschrieben werden (mit erkannter Version), Dateizugriff, Copyright & Datenquellen.
+
 ## Installation
 
 1. Die neueste `dabs-xcsoar-<version>.apk` unter [Releases](../../releases) aufs Handy laden.
