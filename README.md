@@ -55,8 +55,10 @@ Die App läuft **nicht im Hintergrund**: Daten werden nur geholt, wenn du sie ö
   Uhrzeit), rot ✕ = Fehler, orange ! = abgebrochen. Die Länder laden gleichzeitig.
 - **Antippen eines Landes:** Details – Stand, Gebietsliste mit Zeiten und Höhen, Fehlermeldung,
   Herkunft der Grenzen, „Neu laden“.
-- **⟳** lädt alles neu, **⚙** öffnet die Einstellungen: Programmhinweise, welche XCSoar-Installationen
-  beschrieben werden (mit erkannter Version), Dateizugriff, Copyright & Datenquellen.
+- **Großer Knopf unten** „Alle neu laden“ (auch im Flug gut zu treffen); während des Ladens zeigt er
+  den Fortschritt („3 von 5 fertig“).
+- **⚙ Einstellungen** mit Unterseiten: So funktioniert's · XCSoar-Versionen (welche Installationen
+  beschrieben werden, mit erkannter Version) · Dateizugriff · Copyright & Quellen.
 
 ## Installation
 

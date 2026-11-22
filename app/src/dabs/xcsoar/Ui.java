@@ -71,6 +71,40 @@ final class Ui {
         return col;
     }
 
+    /** Leiste unten (nur bei pageWithBottom), bleibt beim Scrollen stehen. */
+    LinearLayout bottom;
+
+    /** Wie page(), aber mit fester Leiste unten für den großen Knopf. */
+    LinearLayout pageWithBottom() {
+        LinearLayout col = page();
+        ScrollView sv = (ScrollView) col.getParent();
+        ((android.view.ViewGroup) sv.getParent()).removeView(sv);
+        LinearLayout root = new LinearLayout(a);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(bg);
+        root.addView(sv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        bottom = new LinearLayout(a);
+        bottom.setOrientation(LinearLayout.VERTICAL);
+        bottom.setPadding(dp(16), dp(8), dp(16), dp(16));
+        bottom.setBackgroundColor(bg);
+        root.addView(bottom);
+        a.setContentView(root);
+        return col;
+    }
+
+    /** Großer Hauptknopf (auch im Flug mit Handschuh/Turbulenz gut zu treffen). */
+    Button bigButton(String label) {
+        Button b = button(label, true);
+        b.setTextSize(19);
+        b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        GradientDrawable g = new GradientDrawable();
+        g.setCornerRadius(dp(32));
+        g.setColor(accent);
+        b.setBackground(new RippleDrawable(ColorStateList.valueOf(line), g, null));
+        b.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64)));
+        return b;
+    }
+
     Drawable rounded(int color, float radiusDp) {
         GradientDrawable g = new GradientDrawable();
         g.setColor(color);
@@ -114,12 +148,12 @@ final class Ui {
         b.setText(label);
         b.setAllCaps(false);
         b.setTextSize(14);
-        b.setMinHeight(dp(36));
-        b.setMinimumHeight(dp(36));
+        b.setMinHeight(dp(48));
+        b.setMinimumHeight(dp(48));
         b.setPadding(dp(14), 0, dp(14), 0);
         b.setStateListAnimator(null);
         GradientDrawable g = new GradientDrawable();
-        g.setCornerRadius(dp(18));
+        g.setCornerRadius(dp(24));
         if (filled) {
             g.setColor(accent);
             b.setTextColor(onAccent);
@@ -134,9 +168,9 @@ final class Ui {
 
     /** Runder Symbol-Knopf (z. B. ⟳ oder ⚙). */
     TextView iconButton(String glyph) {
-        TextView t = text(glyph, 22, accent, false);
+        TextView t = text(glyph, 24, accent, false);
         t.setGravity(Gravity.CENTER);
-        int s = dp(44);
+        int s = dp(52);
         t.setLayoutParams(new LinearLayout.LayoutParams(s, s));
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);

@@ -28,13 +28,14 @@ public class MainActivity extends Activity implements Updater.Listener {
     private Ui ui;
     private LinearLayout list;
     private View storageCard;
+    private Button reloadBtn;
 
     @Override
     protected void onCreate(Bundle b) {
         Ui.theme(this);
         super.onCreate(b);
         ui = new Ui(this);
-        LinearLayout col = ui.page();
+        LinearLayout col = ui.pageWithBottom();
 
         // Kopf: Logo, Titel, Aktualisieren, Einstellungen
         LinearLayout head = new LinearLayout(this);
@@ -48,13 +49,8 @@ public class MainActivity extends Activity implements Updater.Listener {
         titles.addView(ui.text("DABS für XCSoar", 21, ui.text, true));
         titles.addView(ui.text("Aktive Militär-Lufträume · " + Updater.today(), 13, ui.sub, false));
         head.addView(titles, Ui.weight1());
-        TextView refresh = ui.iconButton("⟳");
-        refresh.setContentDescription("Alle neu laden");
-        refresh.setOnClickListener(v -> reload());
-        head.addView(refresh);
         TextView gear = ui.iconButton("⚙");
         gear.setContentDescription("Einstellungen");
-        ((LinearLayout.LayoutParams) gear.getLayoutParams()).leftMargin = ui.dp(6);
         gear.setOnClickListener(v -> {
             skipReload = true;
             startActivity(new Intent(this, SettingsActivity.class));
@@ -78,6 +74,11 @@ public class MainActivity extends Activity implements Updater.Listener {
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         col.addView(list);
+
+        // großer Knopf unten (fest, scrollt nicht weg)
+        reloadBtn = ui.bigButton("⟳  Alle neu laden");
+        reloadBtn.setOnClickListener(v -> reload());
+        ui.bottom.addView(reloadBtn);
 
         TextView foot = ui.text("Version " + versionName() + " (Beta) · ohne Gewähr – maßgebend sind AIP, DABS/AUP und NOTAM",
                 12, ui.sub, false);
@@ -120,7 +121,22 @@ public class MainActivity extends Activity implements Updater.Listener {
     @Override
     public void changed() {
         list.removeAllViews();
-        for (Country k : Country.values()) list.addView(row(k));
+        int on = 0, done = 0;
+        for (Country k : Country.values()) {
+            list.addView(row(k));
+            if (Updater.enabled(this, k)) {
+                on++;
+                if (!Updater.running(k)) done++;
+            }
+        }
+        // großer Knopf zeigt den Fortschritt
+        if (Updater.anyRunning()) {
+            reloadBtn.setText("Lädt …  " + done + " von " + on + " fertig");
+            reloadBtn.setAlpha(0.7f);
+        } else {
+            reloadBtn.setText("⟳  Alle neu laden");
+            reloadBtn.setAlpha(1f);
+        }
     }
 
     private View row(Country k) {
@@ -150,7 +166,7 @@ public class MainActivity extends Activity implements Updater.Listener {
         c.addView(icon);
 
         Button src = ui.button(k == Country.CH ? "DABS-PDF" : "Quelle", false);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, ui.dp(36));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, ui.dp(48));
         lp.leftMargin = ui.dp(10);
         src.setLayoutParams(lp);
         src.setOnClickListener(v -> openSource(this, k));
@@ -173,7 +189,7 @@ public class MainActivity extends Activity implements Updater.Listener {
                 return t;
             }
             case ERROR: return "Fehler · antippen für Details";
-            case INTERRUPTED: return "abgebrochen – ⟳ zum Neuladen";
+            case INTERRUPTED: return "abgebrochen – unten neu laden";
             default: return "noch nicht geladen";
         }
     }

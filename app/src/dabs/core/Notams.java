@@ -37,13 +37,20 @@ public final class Notams {
             "\\b(LO[RDPT] ?\\d+[A-Z]?|LF[- ]?[RDP] ?\\d+[A-Z]?\\d?|TRA ?\\d+[A-Z]?\\d?|TSA ?\\d+[A-Z]?\\d?|CBA ?\\d+[A-Z]?\\d?|AZBA|RTBA|AIP SUP \\d+/\\d+)(?![A-Z0-9])");
 
     public static Country.Result fetch(double[][] centers, String[] firs, LocalDate day, LocalGeometry local) throws Exception {
-        Http h = new Http();
+        // Abfragen gleichzeitig (der Dienst braucht ca. 5 s je Abfrage; FR hat 16 Punkte)
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(Math.min(8, centers.length));
+        List<java.util.concurrent.Future<String>> jobs = new ArrayList<>();
+        for (double[] c : centers) {
+            String url = String.format(Locale.ROOT, "%s?lat=%.2f&lon=%.2f&radius=100", API, c[0], c[1]);
+            jobs.add(pool.submit(() -> new Http().get(url)));
+        }
+        pool.shutdown();
         Set<String> seen = new HashSet<>();   // NOTAM-IDs und -Nummern (Duplikate aus mehreren Abfragen)
         List<Map<String, Object>> items = new ArrayList<>();
         int failed = 0;
-        for (double[] c : centers) {
+        for (java.util.concurrent.Future<String> f : jobs) {   // Reihenfolge bleibt wie die Punkte
             try {
-                String json = h.get(String.format(Locale.ROOT, "%s?lat=%.2f&lon=%.2f&radius=100", API, c[0], c[1]));
+                String json = f.get(60, java.util.concurrent.TimeUnit.SECONDS);
                 for (Object o : Json.arr(Json.obj(Json.parse(json)).get("items"))) {
                     Map<String, Object> it = Json.obj(o);
                     Map<String, Object> n = notam(it);

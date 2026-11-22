@@ -17,14 +17,25 @@ import android.widget.TextView;
 public class SettingsActivity extends Activity {
     private Ui ui;
     private LinearLayout body;
+    private String page; // null = Menü, sonst "help", "installs", "storage", "about"
+
+    static String title(String p) {
+        switch (p) {
+            case "help": return "So funktioniert's";
+            case "installs": return "XCSoar-Versionen";
+            case "storage": return "Dateizugriff";
+            default: return "Copyright & Quellen";
+        }
+    }
 
     @Override
     protected void onCreate(Bundle b) {
         Ui.theme(this);
         super.onCreate(b);
         ui = new Ui(this);
+        page = getIntent().getStringExtra("page");
         LinearLayout col = ui.page();
-        ui.backHeader(col, "Einstellungen");
+        ui.backHeader(col, page == null ? "Einstellungen" : title(page));
         body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
         col.addView(body);
@@ -38,9 +49,40 @@ public class SettingsActivity extends Activity {
 
     private void build() {
         body.removeAllViews();
+        if (page == null) { menu(); return; }
+        switch (page) {
+            case "help": help(); break;
+            case "installs": installs(); break;
+            case "storage": storage(); break;
+            default: about();
+        }
+    }
 
-        // --- Programmhinweise
-        body.addView(ui.section("So funktioniert's"));
+    /** Menü: große, gut treffbare Einträge. */
+    private void menu() {
+        int n = 0;
+        for (Updater.Install i : Updater.installs()) if (i.exists() && Updater.installEnabled(this, i)) n++;
+        boolean ok = Updater.hasStorageAccess(this);
+        body.addView(entry("help", "Programmhinweise, Einrichtung in XCSoar, Farben"));
+        body.addView(entry("installs", n + (n == 1 ? " Installation" : " Installationen") + " ausgewählt"));
+        body.addView(entry("storage", ok ? "✓ erlaubt" : "✕ fehlt – bitte erlauben"));
+        body.addView(entry("about", "Version " + versionName() + " · Lizenz · Datenquellen"));
+    }
+
+    private LinearLayout entry(String p, String subtitle) {
+        LinearLayout c = ui.card(false);
+        c.setMinimumHeight(ui.dp(72));
+        LinearLayout t = new LinearLayout(this);
+        t.setOrientation(LinearLayout.VERTICAL);
+        t.addView(ui.text(title(p), 18, ui.text, true));
+        t.addView(ui.text(subtitle, 14, p.equals("storage") && !Updater.hasStorageAccess(this) ? Ui.RED : ui.sub, false));
+        c.addView(t, Ui.weight1());
+        c.addView(ui.text("›", 28, ui.sub, false));
+        c.setOnClickListener(v -> startActivity(new android.content.Intent(this, SettingsActivity.class).putExtra("page", p)));
+        return c;
+    }
+
+    private void help() {
         LinearLayout h = ui.card(true);
         h.addView(html(
                 "Beim <b>Öffnen der App</b> werden die heute aktiven Militär- und Sperrgebiete der gewählten Länder "
@@ -57,9 +99,9 @@ public class SettingsActivity extends Activity {
                 + "„Grenzen aus &lt;Datei&gt;“. Sonst ein ungefährer Kreis aus dem NOTAM.<br><br>"
                 + "Namen enthalten Datum und Zeiten (UTC). Steht ein altes Datum im Namen, war das Laden nicht erfolgreich."));
         body.addView(h);
+    }
 
-        // --- XCSoar-Versionen
-        body.addView(ui.section("XCSoar-Versionen"));
+    private void installs() {
         LinearLayout v = ui.card(true);
         v.addView(ui.text("In welche Installationen sollen die Dateien geschrieben werden?", 13, ui.sub, false));
         for (Updater.Install i : Updater.installs()) {
@@ -69,7 +111,8 @@ public class SettingsActivity extends Activity {
             cb.setButtonTintList(android.content.res.ColorStateList.valueOf(ui.accent));
             cb.setText(i.label + (ver != null ? " " + ver : ""));
             cb.setTextColor(exists ? ui.text : ui.sub);
-            cb.setTextSize(15);
+            cb.setTextSize(16);
+            cb.setMinHeight(ui.dp(48));
             cb.setChecked(exists && Updater.installEnabled(this, i));
             cb.setEnabled(exists);
             cb.setOnCheckedChangeListener((x, on) -> {
@@ -83,9 +126,13 @@ public class SettingsActivity extends Activity {
             v.addView(p);
         }
         body.addView(v);
+        TextView note = ui.text("Als Ersatz-Grenzen werden nur Luftraumdateien aus den aktiven Profilen der hier "
+                + "gewählten Installationen genutzt. Abwählen entfernt die App-Dateien dort.", 13, ui.sub, false);
+        note.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), 0);
+        body.addView(note);
+    }
 
-        // --- Dateizugriff
-        body.addView(ui.section("Dateizugriff"));
+    private void storage() {
         LinearLayout f = ui.card(true);
         boolean ok = Updater.hasStorageAccess(this);
         f.addView(ui.text(ok ? "✓ Zugriff auf alle Dateien erlaubt" : "✕ Zugriff auf alle Dateien fehlt",
@@ -95,10 +142,14 @@ public class SettingsActivity extends Activity {
             g.setOnClickListener(x -> requestStorage());
             f.addView(g);
         }
+        TextView why = ui.text("Nötig, weil die App in den Ordner einer anderen App (XCSoar) schreibt. "
+                + "Gelesen werden nur die XCSoar-Ordner.", 13, ui.sub, false);
+        why.setPadding(0, ui.dp(8), 0, 0);
+        f.addView(why);
         body.addView(f);
+    }
 
-        // --- Copyright & Datenquellen
-        body.addView(ui.section("Copyright & Datenquellen"));
+    private void about() {
         LinearLayout c = ui.card(true);
         c.addView(html("<b>DABS für XCSoar</b> – Version " + versionName() + " (Beta)<br>"
                 + "© 2026 Nadja · Lizenz: MIT · "
