@@ -117,6 +117,10 @@ public class SettingsActivity extends Activity {
         LinearLayout h = ui.card(true);
         h.addView(html(L.s("help_html")));
         body.addView(h);
+        body.addView(ui.section(L.s("sec_sources")));
+        LinearLayout src = ui.card(true);
+        src.addView(html(L.s("sources_html")));
+        body.addView(src);
     }
 
     private void installs() {
