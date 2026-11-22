@@ -126,8 +126,19 @@ final class L {
         t("block_until", "Gerade erst geladen – erneut möglich ab %s (schont die Server).",
                 "Just loaded – next reload possible from %s (to spare the servers).",
                 "Chargé à l'instant – nouveau chargement possible à partir de %s (pour ménager les serveurs).");
-        t("toast_all_current", "Alle Daten aktuell – neu laden ab %s", "All data current – reload from %s",
-                "Données à jour – recharger à partir de %s");
+        t("toast_all_current", "Alle Daten sind aktuell", "All data is up to date", "Toutes les données sont à jour");
+        t("last_update", "Letztes Daten-Update: heute %s (Lokalzeit)", "Last data update: today %s (local time)",
+                "Dernière mise à jour : aujourd'hui %s (heure locale)");
+        t("st_stale", "veraltet · Stand %s", "outdated · from %s", "périmé · état du %s");
+        t("state_stale", "Veraltet – bitte neu laden", "Outdated – please reload", "Périmé – veuillez recharger");
+        t("reload_small", "Neu laden", "Reload", "Recharger");
+        t("p_force", "Daten-Update erzwingen", "Force data update", "Forcer la mise à jour");
+        t("m_force", "Alle gewählten Länder sofort neu laden – ohne Sperrzeiten", "Reload all selected countries now – ignoring time limits",
+                "Recharger tout de suite tous les pays choisis – sans délais");
+        t("force_note", "Umgeht auch die Begrenzung für Deutschland (1× täglich). Bitte sparsam verwenden.",
+                "Also bypasses the limit for Germany (once a day). Please use sparingly.",
+                "Contourne aussi la limite pour l'Allemagne (1× par jour). À utiliser avec modération.");
+        t("force_started", "Update wird erzwungen …", "Forcing update …", "Mise à jour forcée …");
         t("k_next_dabs", "Nächstes DABS", "Next DABS", "Prochain DABS");
         t("next_dabs", "Das DABS für morgen erscheint ab ca. 16:00 Uhr (Schweizer Zeit); im Lauf des Tages kann es neue Versionen geben.",
                 "Tomorrow's DABS is published from about 16:00 (Swiss time); new versions may appear during the day.",

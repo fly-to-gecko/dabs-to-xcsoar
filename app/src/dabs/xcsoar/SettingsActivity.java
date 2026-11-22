@@ -76,6 +76,28 @@ public class SettingsActivity extends Activity {
         body.addView(entry("storage", L.s(ok ? "m_storage_ok" : "m_storage_missing"), !ok));
         body.addView(entry("lang", langName(L.pref(this)), false));
         body.addView(entry("about", L.s("m_about", versionName()), false));
+
+        // Update erzwingen: großer Eintrag, startet sofort und kehrt zur Startseite zurück
+        LinearLayout f = ui.card(false);
+        f.setMinimumHeight(ui.dp(72));
+        LinearLayout t = new LinearLayout(this);
+        t.setOrientation(LinearLayout.VERTICAL);
+        t.addView(ui.text("⟳  " + L.s("p_force"), 18, ui.accent, true));
+        t.addView(ui.text(L.s("m_force"), 14, ui.sub, false));
+        TextView fn = ui.text(L.s("force_note"), 12, ui.sub, false);
+        fn.setPadding(0, ui.dp(4), 0, 0);
+        t.addView(fn);
+        f.addView(t, Ui.weight1());
+        f.setOnClickListener(v -> {
+            if (!Updater.hasStorageAccess(this)) {
+                android.widget.Toast.makeText(this, L.s("toast_storage_first"), android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Updater.updateAll(this, true);
+            android.widget.Toast.makeText(this, L.s("force_started"), android.widget.Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+        });
+        body.addView(f);
     }
 
     private LinearLayout entry(String p, String subtitle, boolean warn) {

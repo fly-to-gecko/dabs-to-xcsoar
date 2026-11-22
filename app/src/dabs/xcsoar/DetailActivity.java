@@ -137,6 +137,7 @@ public class DetailActivity extends Activity implements Updater.Listener {
         switch (st) {
             case OK: return L.s("state_ok");
             case RUNNING: return L.s("state_running");
+            case STALE: return L.s("state_stale");
             case ERROR: return L.s("state_error");
             case INTERRUPTED: return L.s("state_interrupted");
             case OFF: return L.s("state_off");

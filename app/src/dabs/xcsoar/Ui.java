@@ -197,6 +197,7 @@ final class Ui {
             case OK: g = "✓"; color = GREEN; break;
             case ERROR: g = "✕"; color = RED; break;
             case INTERRUPTED: g = "!"; color = ORANGE; break;
+            case STALE: g = "!"; color = ORANGE; break;
             case OFF: g = ""; color = Color.TRANSPARENT; break;
             default: g = "–"; color = GRAY;
         }

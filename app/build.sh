@@ -10,12 +10,12 @@ JAR=$SDK/platforms/android-34/android.jar
 OUT=build/apk
 rm -rf $OUT && mkdir -p $OUT/classes $OUT/dex
 
-$JAVA_HOME/bin/javac -encoding UTF-8 --release 11 -classpath "$JAR" -d $OUT/classes \
-  $(find src -name '*.java') 2>&1 | grep -v '^Note:' || true
-# --release 11 erlaubt kein android.jar auf dem bootclasspath -> Fallback
-if [ ! -f $OUT/classes/dabs/xcsoar/MainActivity.class ]; then
-  $JAVA_HOME/bin/javac -encoding UTF-8 -source 11 -target 11 -bootclasspath "$JAR" -d $OUT/classes \
-    $(find src -name '*.java') 2>&1 | grep -v -e '^Note:' -e 'warning: \[options\]' -e '^1 warning' || true
+# Kompilieren; bei Fehlern abbrechen (sonst entstünde eine APK mit fehlenden Klassen)
+if ! $JAVA_HOME/bin/javac -encoding UTF-8 --release 11 -classpath "$JAR" -d $OUT/classes \
+    $(find src -name '*.java') > $OUT/javac.log 2>&1; then
+  grep -v -e '^Note:' -e 'warning: \[options\]' $OUT/javac.log
+  echo "FEHLER: Kompilieren fehlgeschlagen" >&2
+  exit 1
 fi
 test -f $OUT/classes/dabs/xcsoar/MainActivity.class
 

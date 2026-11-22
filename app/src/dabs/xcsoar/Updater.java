@@ -113,7 +113,7 @@ public final class Updater {
         prefs(c).edit().putBoolean("on_" + k.name(), on).apply();
     }
 
-    enum State { OFF, RUNNING, OK, ERROR, INTERRUPTED, NEVER }
+    enum State { OFF, RUNNING, OK, STALE, ERROR, INTERRUPTED, NEVER }
 
     /** Gespeicherter Status eines Landes. */
     static final class Status {
@@ -136,7 +136,9 @@ public final class Updater {
         s.error = p.getString("err_" + k.name(), "");
         s.localFiles = p.getString("local_" + k.name(), "");
         switch (st) {
-            case "ok": s.state = State.OK; break;
+            case "ok": // erfolgreich – aber nur heute ist "aktuell", sonst veraltet
+                s.state = today().equals(p.getString("okDay_" + k.name(), "")) ? State.OK : State.STALE;
+                break;
             case "err": s.state = State.ERROR; break;
             case "run":
                 // läuft nur, wenn es dieser Prozess gerade tut – sonst wurde die App beendet
@@ -191,6 +193,35 @@ public final class Updater {
         return null;
     }
 
+    /** Sind alle gewählten Länder heute erfolgreich geladen? (dann statt Knopf der Hinweis) */
+    static boolean allCurrent(Context c) {
+        boolean any = false;
+        for (Country k : Country.values()) {
+            if (!enabled(c, k)) continue;
+            any = true;
+            if (status(c, k).state != State.OK) return false;
+        }
+        return any;
+    }
+
+    /** Uhrzeit (Lokalzeit) des letzten erfolgreichen Updates der gewählten Länder, z. B. "12:07". */
+    static String lastUpdate(Context c) {
+        long max = 0;
+        for (Country k : Country.values())
+            if (enabled(c, k)) max = Math.max(max, prefs(c).getLong("okMs_" + k.name(), 0));
+        return max == 0 ? "–" : new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new Date(max));
+    }
+
+    /** Wieder angehakt: letzten Stand von heute ohne Abruf zurückschreiben. */
+    static void restoreIfToday(Context c, Country k) {
+        if (today().equals(prefs(c).getString("okDay_" + k.name(), ""))) restoreFiles(c, k);
+    }
+
+    /** Installationen geändert: fehlende Dateien aller gewählten Länder (Stand von heute) ergänzen. */
+    static void restoreAll(Context c) {
+        for (Country k : Country.values()) if (enabled(c, k)) restoreIfToday(c, k);
+    }
+
     /** Frühester Zeitpunkt (HH:mm), ab dem wieder ein Land geladen werden darf. */
     static String nextAllowed(Context c) {
         long min = Long.MAX_VALUE;
@@ -202,6 +233,11 @@ public final class Updater {
 
     /** @return Anzahl der Länder, die wirklich geladen werden */
     static int updateAll(Context ctx) {
+        return updateAll(ctx, false);
+    }
+
+    /** @param force Sperrzeiten (15 min, DE 1x täglich) ignorieren – nur über die Einstellungen */
+    static int updateAll(Context ctx, boolean force) {
         startedInThisProcess = true;
         Context c = ctx.getApplicationContext();
         prefs(c).edit().putString("lastRunDay", today()).apply();
@@ -209,7 +245,7 @@ public final class Updater {
         synchronized (Updater.class) { local = null; }
         int started = 0;
         for (Country k : Country.values()) {
-            if (enabled(c, k)) { if (update(c, k)) started++; }
+            if (enabled(c, k)) { if (update(c, k, force)) started++; }
             else removeFiles(c, k);
         }
         return started;
@@ -217,8 +253,12 @@ public final class Updater {
 
     /** Ein Land neu laden. */
     static boolean update(Context ctx, Country k) {
+        return update(ctx, k, false);
+    }
+
+    static boolean update(Context ctx, Country k, boolean force) {
         Context c = ctx.getApplicationContext();
-        if (blockedReason(c, k) != null) { // eben erst geladen bzw. DE schon heute
+        if (!force && blockedReason(c, k) != null) { // eben erst geladen bzw. DE schon heute
             restoreFiles(c, k); // fehlende Dateien (wieder angehakt) aus dem letzten Stand – ohne Server
             return false;
         }

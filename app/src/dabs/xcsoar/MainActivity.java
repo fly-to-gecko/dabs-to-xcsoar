@@ -24,7 +24,6 @@ public class MainActivity extends Activity implements Updater.Listener {
      * Geladen wird nur beim Neustart der App (neue Activity) oder wenn ein neuer Tag begonnen hat –
      * nicht beim Entsperren oder Zurückwechseln (schont die Server der Flugsicherungen).
      */
-    private boolean pendingLoad;
     /** von den Einstellungen gesetzt, wenn neu geladen werden soll (z. B. andere XCSoar-Auswahl) */
     static boolean dirty;
     /** Sprache in den Einstellungen geändert -> Seite neu aufbauen (ohne neu zu laden) */
@@ -34,13 +33,12 @@ public class MainActivity extends Activity implements Updater.Listener {
     private LinearLayout list;
     private View storageCard;
     private Button reloadBtn;
+    private TextView lastInfo;
 
     @Override
     protected void onCreate(Bundle b) {
         Ui.theme(this);
         super.onCreate(b);
-        // nur beim echten Neustart der App (Prozess neu) – nicht bei neuer Seite im laufenden Prozess
-        pendingLoad = !Updater.startedInThisProcess;
         ui = new Ui(this);
         LinearLayout col = ui.pageWithBottom();
 
@@ -56,7 +54,12 @@ public class MainActivity extends Activity implements Updater.Listener {
         titles.addView(ui.text(L.s("app_name"), 21, ui.text, true));
         titles.addView(ui.text(L.s("subtitle", Updater.today()), 13, ui.sub, false));
         head.addView(titles, Ui.weight1());
+        TextView refresh = ui.iconButton("⟳");
+        refresh.setContentDescription(L.s("reload_small"));
+        refresh.setOnClickListener(v -> reload());
+        head.addView(refresh);
         TextView gear = ui.iconButton("⚙");
+        ((LinearLayout.LayoutParams) gear.getLayoutParams()).leftMargin = ui.dp(6);
         gear.setContentDescription(L.s("settings"));
         gear.setOnClickListener(v -> {
             startActivity(new Intent(this, SettingsActivity.class));
@@ -85,6 +88,14 @@ public class MainActivity extends Activity implements Updater.Listener {
         reloadBtn = ui.bigButton(L.s("reload_all"));
         reloadBtn.setOnClickListener(v -> reload());
         ui.bottom.addView(reloadBtn);
+        // statt des Knopfs, wenn alles aktuell ist
+        lastInfo = ui.text("", 16, ui.text, true);
+        lastInfo.setGravity(Gravity.CENTER);
+        lastInfo.setMinHeight(ui.dp(64));
+        lastInfo.setPadding(ui.dp(12), ui.dp(8), ui.dp(12), ui.dp(8));
+        lastInfo.setBackground(ui.rounded(ui.card, 32));
+        lastInfo.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        ui.bottom.addView(lastInfo);
 
         TextView foot = ui.text(L.s("footer", versionName()),
                 12, ui.sub, false);
@@ -102,8 +113,8 @@ public class MainActivity extends Activity implements Updater.Listener {
         storageCard.setVisibility(ok ? View.GONE : View.VISIBLE);
         if (ok) {
             Updater.cancelOldJobs(this);
-            if (pendingLoad || dirty || !Updater.loadedToday(this)) reload();
-            pendingLoad = false;
+            // kein automatisches Laden: der Pilot entscheidet (großer Knopf / ⟳)
+            if (dirty) Updater.restoreAll(this); // andere XCSoar-Auswahl: letzten Stand von heute schreiben
             dirty = false;
         }
         changed();
@@ -121,7 +132,7 @@ public class MainActivity extends Activity implements Updater.Listener {
             return;
         }
         if (Updater.updateAll(this) == 0 && !Updater.anyRunning())
-            Toast.makeText(this, L.s("toast_all_current", Updater.nextAllowed(this)), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, L.s("toast_all_current"), Toast.LENGTH_SHORT).show();
         changed();
     }
 
@@ -137,7 +148,11 @@ public class MainActivity extends Activity implements Updater.Listener {
                 if (!Updater.running(k)) done++;
             }
         }
-        // großer Knopf zeigt den Fortschritt
+        // unten: Knopf (mit Fortschritt) – oder Hinweis, wenn alle gewählten Länder heute aktuell sind
+        boolean current = !Updater.anyRunning() && Updater.allCurrent(this);
+        reloadBtn.setVisibility(current ? View.GONE : View.VISIBLE);
+        lastInfo.setVisibility(current ? View.VISIBLE : View.GONE);
+        if (current) lastInfo.setText("✓  " + L.s("last_update", Updater.lastUpdate(this)));
         if (Updater.anyRunning()) {
             reloadBtn.setText(L.s("loading_progress", done, on));
             reloadBtn.setAlpha(0.7f);
@@ -156,7 +171,7 @@ public class MainActivity extends Activity implements Updater.Listener {
         cb.setButtonTintList(android.content.res.ColorStateList.valueOf(ui.accent));
         cb.setOnCheckedChangeListener((v, on) -> {
             Updater.setEnabled(this, k, on);
-            if (on) { if (Updater.hasStorageAccess(this)) Updater.update(this, k); }
+            if (on) Updater.restoreIfToday(this, k); // kein Abruf – nur Stand von heute zurückschreiben
             else Updater.removeFiles(this, k);
             changed();
         });
@@ -196,6 +211,7 @@ public class MainActivity extends Activity implements Updater.Listener {
                 if (s.daily) t += " · " + L.s("st_daily");
                 return t;
             }
+            case STALE: return L.s("st_stale", s.time);
             case ERROR: return L.s("st_error");
             case INTERRUPTED: return L.s("st_interrupted");
             default: return L.s("st_never");

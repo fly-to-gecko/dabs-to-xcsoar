@@ -46,14 +46,20 @@ Hinweise:
   weil XCSoar leere OpenAir-Dateien ablehnt.
 - Abgewählte Länder: die App löscht deren Datei, damit keine veralteten Gebiete angezeigt werden.
 
-Die App läuft **nicht im Hintergrund**. Geladen wird automatisch nur beim **Start der App** und an
-einem **neuen Tag** – nicht beim Entsperren oder Zurückwechseln (dafür gibt es den großen Knopf).
+Die App läuft **nicht im Hintergrund** und lädt **nicht automatisch** – auch nicht beim Start.
+Die Daten bleiben auf dem letzten Stand, bis du aktiv lädst (großer Knopf unten oder ⟳ oben).
+Länder, deren Stand nicht von heute ist, zeigen eine **orange Ampel** („veraltet“). Sind alle gewählten
+Länder heute geladen, ersetzt der Hinweis **„Letztes Daten-Update: heute HH:MM (Lokalzeit)“** den Knopf.
+
+**Sprachen:** Deutsch, Englisch, Französisch – standardmäßig die Systemsprache, umstellbar unter
+⚙ → Sprache. Auch der Hinweis „Grenzen aus …“ in den Gebietsnamen folgt der Sprache.
+
 ### Rücksicht auf die Server
 
 Die App fragt so wenig wie möglich an:
 
-- **Sperrzeit:** Nach erfolgreichem Laden wird ein Land 15 Minuten lang nicht erneut abgefragt
-  (der Knopf meldet dann „Alle Daten aktuell – neu laden ab …“).
+- **Sperrzeit:** Nach erfolgreichem Laden wird ein Land 15 Minuten lang nicht erneut abgefragt.
+  Unter ⚙ → **Daten-Update erzwingen** lässt sich jederzeit alles neu laden (auch Deutschland) – bitte sparsam.
 - **Deutschland höchstens einmal am Tag:** Die [Nutzungsbedingungen des DFS AIS-Portals](https://ais.dfs.de/pilotservice/service/information/disclaimer/disclaimer.jsp)
   untersagen den automatisierten Abruf ohne schriftliche Zustimmung der DFS. Eine Anfrage bei der DFS
   läuft; bis dahin ist der Abruf auf einmal täglich begrenzt. Das Modul kann je nach Antwort entfallen.
@@ -73,10 +79,12 @@ Die App fragt so wenig wie möglich an:
   Uhrzeit), rot ✕ = Fehler, orange ! = abgebrochen. Die Länder laden gleichzeitig.
 - **Antippen eines Landes:** Details – Stand, Gebietsliste mit Zeiten und Höhen, Fehlermeldung,
   Herkunft der Grenzen, „Neu laden“.
-- **Großer Knopf unten** „Alle neu laden“ (auch im Flug gut zu treffen); während des Ladens zeigt er
-  den Fortschritt („3 von 5 fertig“).
+- **Großer Knopf unten** „Alle neu laden“ (auch im Flug gut zu treffen), zusätzlich **⟳** oben.
+  Während des Ladens zeigt der Knopf den Fortschritt („3 von 5 fertig“); sind alle Länder aktuell,
+  steht dort stattdessen das letzte Daten-Update.
 - **⚙ Einstellungen** mit Unterseiten: So funktioniert's · XCSoar-Versionen (welche Installationen
-  beschrieben werden, mit erkannter Version) · Dateizugriff · Sprache · Copyright & Quellen.
+  beschrieben werden, mit erkannter Version) · Dateizugriff · Sprache · Copyright & Quellen ·
+  Daten-Update erzwingen.
 
 ## Installation
 
