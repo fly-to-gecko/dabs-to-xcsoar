@@ -13,8 +13,8 @@ Aktivierungszeit.
 
 ## So funktioniert's
 
-Beim **Öffnen der App** (oder mit „Jetzt aktualisieren“) lädt sie für jedes angehakte Land die heute
-aktiven Gebiete und schreibt je Land eine OpenAir-Datei in **alle** gefundenen XCSoar-Installationen
+Auf Knopfdruck lädt die App für jedes angehakte Land die heute
+aktiven Gebiete und schreibt je Land eine OpenAir-Datei in die gewählten XCSoar-Installationen
 (XCSoar 7.45+: `Android/media/<paket>/airspace/`, ältere Versionen und OpenSoar: Datenordner).
 
 | Land | Datei | Aktivierungen aus | Umrisse aus |
@@ -91,12 +91,10 @@ Die App fragt so wenig wie möglich an:
 
 ## Installation
 
-1. Die neueste `dabs-xcsoar-<version>.apk` unter [Releases](../../releases) aufs Handy laden.
-2. Öffnen und die Installation aus unbekannten Quellen erlauben.
-3. App starten → **„Dateizugriff erlauben“** → *Zugriff auf alle Dateien* einschalten.
-   (Nötig, weil die App in den Ordner einer anderen App – XCSoar – schreibt.)
-4. Zurück in der App lädt sie sofort die Daten.
+📱 **Schritt-für-Schritt-Anleitung: [INSTALL.md](INSTALL.md)** (English: [INSTALL.en.md](INSTALL.en.md))
 
+Kurz: neueste `dabs-xcsoar-<version>.apk` unter [Releases](../../releases) aufs Handy laden, Installation
+aus unbekannten Quellen erlauben, in der App den Dateizugriff erlauben, Länder anhaken, „Alle neu laden“.
 Voraussetzung: Android 8 oder neuer, XCSoar mindestens einmal gestartet.
 
 ## Einrichtung in XCSoar (einmalig)
@@ -114,7 +112,7 @@ R-/D-Gebiete immer – egal ob aktiv.
 Alle Gebiete aus der App haben die OpenAir-Klasse **TFR** (temporäre Flugbeschränkung). Diese Klasse
 kommt in den üblichen Luftraumdateien nicht vor. Gib ihr in XCSoar einmalig eine eigene Farbe:
 
-**Konfiguration → System → Luftraum → Farben → TFR** → z. B. Violett für Rand und Füllung.
+In den **Luftraum-Einstellungen** von XCSoar unter **Farben** die Klasse **TFR** z. B. violett einstellen (Rand und Füllung).
 
 Dann gilt: rot = Gebiet aus der Standard-Luftraumdatei, violett = heute aktiv laut DABS/AUP/NOTAM.
 Die **offizielle Kategorie** steht im Namen: `[R]` Sperrgebiet, `[D]` Gefahrengebiet, `[P]` Verbotszone,
@@ -123,7 +121,8 @@ Zusätzlich enthalten die Dateien `SP`/`SB` (violett) für SeeYou & Co.; XCSoar 
 
 (Von Hand im Profil, XCSoar vorher beenden: `AirspaceBorderColor42="#8000FF"` und `AirspaceFillColor42="#8000FF"`.)
 
-**Vor dem Flug:** erst die DABS-App öffnen, bis „OK“ erscheint, dann XCSoar starten.
+**Vor dem Flug:** erst die DABS-App öffnen und „Alle neu laden“ tippen (unten erscheint dann
+„Letztes Daten-Update: heute …“), danach XCSoar starten.
 XCSoar liest Luftraumdateien nur beim Start (oder nach Änderungen in der Konfiguration) ein.
 
 Das DABS für den Folgetag erscheint ab ca. 16:00 Uhr; die App lädt immer das DABS des aktuellen Tages.
@@ -177,8 +176,10 @@ app/
   AndroidManifest.xml
   build.sh                 Build ohne Gradle (javac → d8 → aapt2 → apksigner)
   res/                     Icon
-  src/dabs/core/           Länder-Quellen (DabsPdf, Germany, Czechia, Notams), OpenAir (plattformunabhängig)
-  src/dabs/xcsoar/         Android-Oberfläche, XCSoar-Ordner finden
+  src/dabs/core/           plattformunabhängig: Länder-Quellen (DabsPdf/OpenAir, Germany, Czechia, Notams),
+                           Area (OpenAir), Http (Cache, ETag, Delta), LocalGeometry/XcsoarProfile (Ersatz-Grenzen)
+  src/dabs/xcsoar/         Android: MainActivity (Start), DetailActivity, SettingsActivity, Updater (Laden,
+                           Status, Sperrzeiten), Ui (Design), L (Sprachen DE/EN/FR), PdfProvider
   cli/                     Kommandozeile zum Testen am PC
 tools/dabs2openair.py      Python-Prototyp
 ```
